@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food-ctrl - App de Nutrició</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background-color: #f7f9fc; color: #333; }
+        h1 { color: #2c3e50; text-align: center; margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #7f8c8d; margin-top: 0; margin-bottom: 25px; font-size: 14px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        h2 { color: #2c3e50; font-size: 18px; margin-top: 0; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
+        .stat { background: #e8f4f8; padding: 12px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center;}
+        .stat.alert { background: #fdedec; color: #c0392b; }
+        .stat span.label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; color: #7f8c8d; margin-bottom: 5px; }
+        .stat span.value { font-size: 22px; font-weight: 800; color: #2980b9; }
+        .stat.alert span.value { color: #c0392b; }
+        .form-group { margin-bottom: 12px; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; color: #34495e; }
+        input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #bdc3c7; border-radius: 6px; font-size: 16px; background-color: #fdfdfd;}
+        button { width: 100%; padding: 14px; background: #27ae60; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
+        button:hover { background: #2ecc71; }
+        ul { list-style-type: none; padding: 0; margin: 0; }
+        li { background: #f8f9f9; border-left: 4px solid #3498db; margin-bottom: 10px; padding: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);}
+        .item-nom { font-weight: bold; color: #2c3e50; }
+        .item-dades { font-size: 14px; color: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+    <h1>🍏 Food-ctrl</h1>
+    <p class="subtitle">Objectiu: 78 kg | Mode: Punts Enlínia + Macros</p>
+
+    <div class="card">
+        <h2>Resum d'Avui</h2>
+        <div class="grid">
+            <div class="stat" id="box-punts">
+                <span class="label">Punts Diaris</span>
+                <span class="value"><span id="punts-restants">29</span> / 29</span>
+            </div>
+            <div class="stat" id="box-extres">
+                <span class="label">Extres Setmanals</span>
+                <span class="value"><span id="extres-restants">12</span> / 12</span>
+            </div>
+            <div class="stat">
+                <span class="label">Kcal Restants</span>
+                <span class="value" id="kcal-restants">1800</span>
+            </div>
+            <div class="stat">
+                <span class="label">Prot. Restants</span>
+                <span class="value" id="prot-restants">140g</span>
+            </div>
+            <div class="stat" id="box-greixos">
+                <span class="label">Greixos Restants</span>
+                <span class="value" id="greixos-restants">55g</span>
+            </div>
+            <div class="stat">
+                <span class="label">Carbs Restants</span>
+                <span class="value" id="carbs-restants">175g</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2>Afegeix un àpat o exercici</h2>
+        <div class="form-group">
+            <label>Nom de l'àpat (ex: Cafè amb llet)</label>
+            <input type="text" id="nom" placeholder="Escriu aquí...">
+        </div>
+        <div class="grid">
+            <div class="form-group">
+                <label>Punts</label>
+                <input type="number" id="punts" value="0" step="any">
+            </div>
+            <div class="form-group">
+                <label>Kcal</label>
+                <input type="number" id="kcal" value="0" step="any">
+            </div>
+            <div class="form-group">
+                <label>Proteïnes (g)</label>
+                <input type="number" id="prot" value="0" step="any">
+            </div>
+            <div class="form-group">
+                <label>Greixos (g)</label>
+                <input type="number" id="greixos" value="0" step="any">
+            </div>
+        </div>
+        <button onclick="afegirApat()">➕ Registrar</button>
+    </div>
+
+    <div class="card">
+        <h2>Historial del dia</h2>
+        <ul id="historial">
+            </ul>
+    </div>
+
+    <script>
+        // Configuració Inicial
+        const limits = { punts: 29, extres: 12, kcal: 1800, prot: 140, greixos: 55, carbs: 175 };
+        let consumit = { punts: 0, extres: 0, kcal: 0, prot: 0, greixos: 0, carbs: 0 };
+
+        function afegirApat() {
+            // Recollir dades
+            const nom = document.getElementById('nom').value || 'Sense nom';
+            const punts = parseFloat(document.getElementById('punts').value) || 0;
+            const kcal = parseFloat(document.getElementById('kcal').value) || 0;
+            const prot = parseFloat(document.getElementById('prot').value) || 0;
+            const greixos = parseFloat(document.getElementById('greixos').value) || 0;
+
+            // Lògica de Punts Enlínia (Si ens passem de 29, agafem de la bossa d'extres)
+            let nousPuntsDiaris = consumit.punts + punts;
+            if (nousPuntsDiaris > limits.punts) {
+                let sobrant = nousPuntsDiaris - limits.punts;
+                consumit.punts = limits.punts; 
+                consumit.extres += sobrant; 
+            } else {
+                consumit.punts = nousPuntsDiaris;
+            }
+
+            // Sumar Macros
+            consumit.kcal += kcal;
+            consumit.prot += prot;
+            consumit.greixos += greixos;
+
+            // Actualitzar Pantalla
+            actualitzarUI();
+
+            // Afegir a la llista
+            const historial = document.getElementById('historial');
+            const li = document.createElement('li');
+            li.innerHTML = `<span class="item-nom">${nom}</span> <span class="item-dades">${punts} pts | ${kcal} kcal</span>`;
+            historial.prepend(li);
+
+            // Netejar formulari
+            document.getElementById('nom').value = '';
+            document.getElementById('punts').value = '0';
+            document.getElementById('kcal').value = '0';
+            document.getElementById('prot').value = '0';
+            document.getElementById('greixos').value = '0';
+        }
+
+        function actualitzarUI() {
+            // Punts Diaris
+            const puntsRestants = limits.punts - consumit.punts;
+            document.getElementById('punts-restants').innerText = puntsRestants;
+            if (puntsRestants <= 0) document.getElementById('box-punts').classList.add('alert');
+            else document.getElementById('box-punts').classList.remove('alert');
+
+            // Extres
+            const extresRestants = limits.extres - consumit.extres;
+            document.getElementById('extres-restants').innerText = extresRestants;
+            if (extresRestants < 0) document.getElementById('box-extres').classList.add('alert');
+            else document.getElementById('box-extres').classList.remove('alert');
+
+            // Macros
+            document.getElementById('kcal-restants').innerText = (limits.kcal - consumit.kcal) + ' kcal';
+            document.getElementById('prot-restants').innerText = (limits.prot - consumit.prot) + 'g';
+            
+            const greixosRestants = limits.greixos - consumit.greixos;
+            document.getElementById('greixos-restants').innerText = greixosRestants + 'g';
+            if (greixosRestants < 0) document.getElementById('box-greixos').classList.add('alert');
+            else document.getElementById('box-greixos').classList.remove('alert');
+        }
+    </script>
+
+</body>
+</html>
