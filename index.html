@@ -3,166 +3,138 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food-ctrl - App de Nutrició</title>
+    <title>Food-ctrl AI Pro</title>
     <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background-color: #f7f9fc; color: #333; }
-        h1 { color: #2c3e50; text-align: center; margin-bottom: 5px; }
-        p.subtitle { text-align: center; color: #7f8c8d; margin-top: 0; margin-bottom: 25px; font-size: 14px; }
-        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); margin-bottom: 20px; }
-        h2 { color: #2c3e50; font-size: 18px; margin-top: 0; border-bottom: 2px solid #ecf0f1; padding-bottom: 10px; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 15px; }
-        .stat { background: #e8f4f8; padding: 12px; border-radius: 8px; text-align: center; display: flex; flex-direction: column; justify-content: center;}
-        .stat.alert { background: #fdedec; color: #c0392b; }
-        .stat span.label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; color: #7f8c8d; margin-bottom: 5px; }
-        .stat span.value { font-size: 22px; font-weight: 800; color: #2980b9; }
-        .stat.alert span.value { color: #c0392b; }
-        .form-group { margin-bottom: 12px; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; color: #34495e; }
-        input { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #bdc3c7; border-radius: 6px; font-size: 16px; background-color: #fdfdfd;}
-        button { width: 100%; padding: 14px; background: #27ae60; color: white; border: none; border-radius: 8px; font-size: 16px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
-        button:hover { background: #2ecc71; }
-        ul { list-style-type: none; padding: 0; margin: 0; }
-        li { background: #f8f9f9; border-left: 4px solid #3498db; margin-bottom: 10px; padding: 12px; border-radius: 4px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);}
-        .item-nom { font-weight: bold; color: #2c3e50; }
-        .item-dades { font-size: 14px; color: #7f8c8d; }
+        body { font-family: -apple-system, system-ui, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #f0f2f5; }
+        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { margin-top: 0; font-size: 18px; color: #1a73e8; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat { background: #e8f0fe; padding: 15px; border-radius: 10px; text-align: center; }
+        .stat.alert { background: #fce8e6; color: #d93025; }
+        .label { font-size: 11px; text-transform: uppercase; color: #5f6368; display: block; }
+        .value { font-size: 20px; font-weight: bold; }
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #dadce0; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
+        button { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        button:disabled { background: #ccc; }
+        #settings-btn { background: none; color: #1a73e8; font-size: 12px; text-decoration: underline; border: none; cursor: pointer; margin-top: 10px; }
+        .hidden { display: none; }
+        li { background: #fff; padding: 10px; border-radius: 8px; margin-top: 10px; border-left: 5px solid #1a73e8; display: flex; justify-content: space-between; font-size: 14px; }
     </style>
 </head>
 <body>
 
-    <h1>🍏 Food-ctrl</h1>
-    <p class="subtitle">Objectiu: 78 kg | Mode: Punts Enlínia + Macros</p>
+    <h1>🍏 Food-ctrl AI</h1>
 
-    <div class="card">
+    <div id="setup-card" class="card">
+        <h2>Configuració</h2>
+        <p style="font-size: 12px;">Enganxa la teva API Key de Google AI Studio:</p>
+        <input type="password" id="api-key" placeholder="AIzaSy...">
+        <button onclick="saveKey()">Desar Clau</button>
+    </div>
+
+    <div id="main-app" class="card hidden">
         <h2>Resum d'Avui</h2>
         <div class="grid">
-            <div class="stat" id="box-punts">
-                <span class="label">Punts Diaris</span>
-                <span class="value"><span id="punts-restants">29</span> / 29</span>
-            </div>
-            <div class="stat" id="box-extres">
-                <span class="label">Extres Setmanals</span>
-                <span class="value"><span id="extres-restants">12</span> / 12</span>
-            </div>
-            <div class="stat">
-                <span class="label">Kcal Restants</span>
-                <span class="value" id="kcal-restants">1800</span>
-            </div>
-            <div class="stat">
-                <span class="label">Prot. Restants</span>
-                <span class="value" id="prot-restants">140g</span>
-            </div>
-            <div class="stat" id="box-greixos">
-                <span class="label">Greixos Restants</span>
-                <span class="value" id="greixos-restants">55g</span>
-            </div>
-            <div class="stat">
-                <span class="label">Carbs Restants</span>
-                <span class="value" id="carbs-restants">175g</span>
-            </div>
+            <div class="stat" id="box-p"> <span class="label">Punts</span> <span class="value" id="v-p">29/29</span> </div>
+            <div class="stat" id="box-e"> <span class="label">Extres</span> <span class="value" id="v-e">12/12</span> </div>
+            <div class="stat"> <span class="label">Calories</span> <span class="value" id="v-k">1800</span> </div>
+            <div class="stat"> <span class="label">Proteïna</span> <span class="value" id="v-pr">140g</span> </div>
         </div>
+        
+        <textarea id="userInput" placeholder="Ex: M'he menjat 2 cafès amb llet i una taronja..."></textarea>
+        <button id="sendBtn" onclick="askAI()">🚀 Calcular amb IA</button>
+        <button id="settings-btn" onclick="showSetup()">Canviar API Key</button>
     </div>
 
     <div class="card">
-        <h2>Afegeix un àpat o exercici</h2>
-        <div class="form-group">
-            <label>Nom de l'àpat (ex: Cafè amb llet)</label>
-            <input type="text" id="nom" placeholder="Escriu aquí...">
-        </div>
-        <div class="grid">
-            <div class="form-group">
-                <label>Punts</label>
-                <input type="number" id="punts" value="0" step="any">
-            </div>
-            <div class="form-group">
-                <label>Kcal</label>
-                <input type="number" id="kcal" value="0" step="any">
-            </div>
-            <div class="form-group">
-                <label>Proteïnes (g)</label>
-                <input type="number" id="prot" value="0" step="any">
-            </div>
-            <div class="form-group">
-                <label>Greixos (g)</label>
-                <input type="number" id="greixos" value="0" step="any">
-            </div>
-        </div>
-        <button onclick="afegirApat()">➕ Registrar</button>
-    </div>
-
-    <div class="card">
-        <h2>Historial del dia</h2>
-        <ul id="historial">
-            </ul>
+        <h2>Historial</h2>
+        <ul id="log"></ul>
     </div>
 
     <script>
-        // Configuració Inicial
-        const limits = { punts: 29, extres: 12, kcal: 1800, prot: 140, greixos: 55, carbs: 175 };
-        let consumit = { punts: 0, extres: 0, kcal: 0, prot: 0, greixos: 0, carbs: 0 };
+        let KEY = localStorage.getItem('gemini_key');
+        const limits = { p: 29, e: 12, k: 1800, pr: 140, g: 55 };
+        let consumed = { p: 0, e: 0, k: 0, pr: 0, g: 0 };
 
-        function afegirApat() {
-            // Recollir dades
-            const nom = document.getElementById('nom').value || 'Sense nom';
-            const punts = parseFloat(document.getElementById('punts').value) || 0;
-            const kcal = parseFloat(document.getElementById('kcal').value) || 0;
-            const prot = parseFloat(document.getElementById('prot').value) || 0;
-            const greixos = parseFloat(document.getElementById('greixos').value) || 0;
+        if(KEY) showApp();
 
-            // Lògica de Punts Enlínia (Si ens passem de 29, agafem de la bossa d'extres)
-            let nousPuntsDiaris = consumit.punts + punts;
-            if (nousPuntsDiaris > limits.punts) {
-                let sobrant = nousPuntsDiaris - limits.punts;
-                consumit.punts = limits.punts; 
-                consumit.extres += sobrant; 
-            } else {
-                consumit.punts = nousPuntsDiaris;
-            }
-
-            // Sumar Macros
-            consumit.kcal += kcal;
-            consumit.prot += prot;
-            consumit.greixos += greixos;
-
-            // Actualitzar Pantalla
-            actualitzarUI();
-
-            // Afegir a la llista
-            const historial = document.getElementById('historial');
-            const li = document.createElement('li');
-            li.innerHTML = `<span class="item-nom">${nom}</span> <span class="item-dades">${punts} pts | ${kcal} kcal</span>`;
-            historial.prepend(li);
-
-            // Netejar formulari
-            document.getElementById('nom').value = '';
-            document.getElementById('punts').value = '0';
-            document.getElementById('kcal').value = '0';
-            document.getElementById('prot').value = '0';
-            document.getElementById('greixos').value = '0';
+        function saveKey() {
+            KEY = document.getElementById('api-key').value;
+            localStorage.setItem('gemini_key', KEY);
+            showApp();
         }
 
-        function actualitzarUI() {
-            // Punts Diaris
-            const puntsRestants = limits.punts - consumit.punts;
-            document.getElementById('punts-restants').innerText = puntsRestants;
-            if (puntsRestants <= 0) document.getElementById('box-punts').classList.add('alert');
-            else document.getElementById('box-punts').classList.remove('alert');
+        function showApp() {
+            document.getElementById('setup-card').classList.add('hidden');
+            document.getElementById('main-app').classList.remove('hidden');
+        }
 
-            // Extres
-            const extresRestants = limits.extres - consumit.extres;
-            document.getElementById('extres-restants').innerText = extresRestants;
-            if (extresRestants < 0) document.getElementById('box-extres').classList.add('alert');
-            else document.getElementById('box-extres').classList.remove('alert');
+        function showSetup() {
+            document.getElementById('setup-card').classList.remove('hidden');
+            document.getElementById('main-app').classList.add('hidden');
+        }
 
-            // Macros
-            document.getElementById('kcal-restants').innerText = (limits.kcal - consumit.kcal) + ' kcal';
-            document.getElementById('prot-restants').innerText = (limits.prot - consumit.prot) + 'g';
-            
-            const greixosRestants = limits.greixos - consumit.greixos;
-            document.getElementById('greixos-restants').innerText = greixosRestants + 'g';
-            if (greixosRestants < 0) document.getElementById('box-greixos').classList.add('alert');
-            else document.getElementById('box-greixos').classList.remove('alert');
+        async function askAI() {
+            const input = document.getElementById('userInput').value;
+            const btn = document.getElementById('sendBtn');
+            if(!input) return;
+
+            btn.disabled = true;
+            btn.innerText = "Pensant...";
+
+            const prompt = `Ets Food-ctrl, expert en dieta Enlínia. Analitza: "${input}". 
+            Usa aquestes regles: 
+            - Cafè amb llet (125ml): 2 pts, 60 kcal, 4g prot, 4g greix.
+            - Taronja: 0 pts, 60 kcal, 1g prot.
+            - Galtes porc (100g): 5 pts, 250 kcal, 15g prot.
+            - Cervesa (330ml): 5 pts, 150 kcal.
+            - Olives (8 verdes): 1 pt.
+            - Raïm/Fruita: 0 pts (fins a 3/dia).
+            Si no coneixes l'aliment, estima segons la lògica de 1 punt = 40 kcal aprox (però greixos sumen més).
+            RESPON NOMÉS EN JSON: {"nom": "títol resum", "punts": X, "kcal": X, "prot": X, "greixos": X}`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${KEY}`, {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text.replace(/```json|```/g, '');
+                const res = JSON.parse(text);
+                
+                updateStats(res);
+            } catch (e) {
+                alert("Error amb la clau o la connexió.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "🚀 Calcular amb IA";
+                document.getElementById('userInput').value = "";
+            }
+        }
+
+        function updateStats(res) {
+            let p = res.punts || 0;
+            if (consumed.p + p > limits.p) {
+                let diff = (consumed.p + p) - limits.p;
+                consumed.p = limits.p;
+                consumed.e += diff;
+            } else {
+                consumed.p += p;
+            }
+            consumed.k += res.kcal || 0;
+            consumed.pr += res.prot || 0;
+
+            document.getElementById('v-p').innerText = `${limits.p - consumed.p}/${limits.p}`;
+            document.getElementById('v-e').innerText = `${limits.e - consumed.e}/${limits.e}`;
+            document.getElementById('v-k').innerText = limits.k - consumed.k;
+            document.getElementById('v-pr').innerText = (limits.pr - consumed.pr) + "g";
+
+            const li = document.createElement('li');
+            li.innerHTML = `<span><b>${res.nom}</b></span> <span>${p} pts | ${res.kcal} kcal</span>`;
+            document.getElementById('log').prepend(li);
         }
     </script>
-
 </body>
 </html>
