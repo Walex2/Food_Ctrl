@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Food-ctrl AI Pro</title>
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #f0f2f5; }
+        body { font-family: -apple-system, system-ui, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #f0f2f5; padding-bottom: 70px; }
         .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
         h2 { margin-top: 0; font-size: 18px; color: #1a73e8; }
         .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
@@ -14,66 +14,127 @@
         .label { font-size: 11px; text-transform: uppercase; color: #5f6368; display: block; }
         .value { font-size: 20px; font-weight: bold; }
         input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #dadce0; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
-        button:disabled { background: #ccc; }
-        #settings-btn { background: none; color: #1a73e8; font-size: 12px; text-decoration: underline; border: none; cursor: pointer; margin-top: 10px; }
-        .hidden { display: none; }
-        li { background: #fff; padding: 10px; border-radius: 8px; margin-top: 10px; border-left: 5px solid #1a73e8; display: flex; justify-content: space-between; font-size: 14px; }
+        button.primary-btn { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        button.primary-btn:disabled { background: #ccc; }
+        #settings-btn { background: none; color: #1a73e8; font-size: 12px; text-decoration: underline; border: none; cursor: pointer; margin-top: 10px; width: 100%; }
+        .hidden { display: none !important; }
+        ul { list-style: none; padding: 0; margin: 0; }
+        li.log-item { background: #fff; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #1a73e8; display: flex; justify-content: space-between; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        /* Estils per l'historial de progrés */
+        .progress-day { border-bottom: 1px solid #eee; padding: 15px 0; }
+        .progress-day:last-child { border-bottom: none; }
+        .day-date { font-weight: bold; color: #34495e; margin-bottom: 5px; }
+        .day-stats { font-size: 14px; color: #7f8c8d; }
+        .progress-bar-bg { background: #ecf0f1; height: 10px; border-radius: 5px; margin-top: 8px; overflow: hidden; }
+        .progress-bar-fill { background: #2ecc71; height: 100%; }
+        .progress-bar-fill.over { background: #e74c3c; }
+
+        /* Navegació inferior */
+        .navbar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); padding-bottom: env(safe-area-inset-bottom); }
+        .nav-item { flex: 1; text-align: center; padding: 15px 0; color: #7f8c8d; font-weight: bold; cursor: pointer; }
+        .nav-item.active { color: #1a73e8; border-top: 3px solid #1a73e8; background: #f8faff; }
     </style>
 </head>
 <body>
 
-    <h1>🍏 Food-ctrl AI</h1>
+    <h1 style="text-align: center; color: #2c3e50;">🍏 Food-ctrl</h1>
 
     <div id="setup-card" class="card">
         <h2>Configuració</h2>
-        <p style="font-size: 12px;">Enganxa la teva NOVA API Key secreta:</p>
+        <p style="font-size: 12px;">Enganxa la teva API Key secreta de Gemini:</p>
         <input type="password" id="api-key" placeholder="AIzaSy...">
-        <button onclick="saveKey()">Desar Clau</button>
+        <button class="primary-btn" onclick="saveKey()">Desar Clau</button>
     </div>
 
-    <div id="main-app" class="card hidden">
-        <h2>Resum d'Avui</h2>
-        <div class="grid">
-            <div class="stat" id="box-p"> <span class="label">Punts</span> <span class="value" id="v-p">29/29</span> </div>
-            <div class="stat" id="box-e"> <span class="label">Extres</span> <span class="value" id="v-e">12/12</span> </div>
-            <div class="stat"> <span class="label">Calories</span> <span class="value" id="v-k">1800</span> </div>
-            <div class="stat"> <span class="label">Proteïna</span> <span class="value" id="v-pr">140g</span> </div>
+    <div id="tab-diari" class="hidden">
+        <div class="card">
+            <h2>Resum d'Avui</h2>
+            <div class="grid">
+                <div class="stat" id="box-p"> <span class="label">Punts</span> <span class="value" id="v-p">29/29</span> </div>
+                <div class="stat" id="box-e"> <span class="label">Extres</span> <span class="value" id="v-e">12/12</span> </div>
+                <div class="stat"> <span class="label">Calories Rest.</span> <span class="value" id="v-k">1800</span> </div>
+                <div class="stat"> <span class="label">Prot. Restants</span> <span class="value" id="v-pr">140g</span> </div>
+            </div>
+            
+            <textarea id="userInput" placeholder="Ex: Un plat de galtes de porc i un cafè amb llet petit..."></textarea>
+            <button class="primary-btn" id="sendBtn" onclick="askAI()">🚀 Calcular amb IA</button>
+            <button id="settings-btn" onclick="showSetup()">Configurar API Key</button>
         </div>
-        
-        <textarea id="userInput" placeholder="Ex: M'he menjat 2 cafès amb llet i una taronja..."></textarea>
-        <button id="sendBtn" onclick="askAI()">🚀 Calcular amb IA</button>
-        <button id="settings-btn" onclick="showSetup()">Canviar API Key</button>
+
+        <div class="card">
+            <h2>Què has menjat avui?</h2>
+            <ul id="log"></ul>
+        </div>
     </div>
 
-    <div class="card">
-        <h2>Historial</h2>
-        <ul id="log"></ul>
+    <div id="tab-progres" class="hidden">
+        <div class="card">
+            <h2>El teu Historial</h2>
+            <p style="font-size: 13px; color: #7f8c8d;">Aquí veuràs com vas gastant els teus 29 punts diaris.</p>
+            <div id="history-list"></div>
+        </div>
+    </div>
+
+    <div class="navbar hidden" id="navbar">
+        <div class="nav-item active" id="nav-diari" onclick="switchTab('diari')">📝 Diari</div>
+        <div class="nav-item" id="nav-progres" onclick="switchTab('progres')">📊 Progrés</div>
     </div>
 
     <script>
+        // CONFIGURACIÓ BÀSICA
         let KEY = localStorage.getItem('gemini_key');
         const limits = { p: 29, e: 12, k: 1800, pr: 140, g: 55 };
-        let consumed = { p: 0, e: 0, k: 0, pr: 0, g: 0 };
+        
+        // GESTIÓ DE DADES I DIES
+        let today = new Date().toISOString().split('T')[0]; // Exemple: "2023-10-25"
+        let appData = JSON.parse(localStorage.getItem('food_ctrl_data')) || { extres: limits.e, history: {} };
+        
+        // Si avui no existeix a l'historial, el creem buit
+        if (!appData.history[today]) {
+            appData.history[today] = { p: 0, k: 0, pr: 0, g: 0, items: [] };
+            saveData();
+        }
 
-        if(KEY) showApp();
+        let consumed = appData.history[today];
+
+        // INICI DE L'APP
+        if(KEY) {
+            document.getElementById('setup-card').classList.add('hidden');
+            document.getElementById('tab-diari').classList.remove('hidden');
+            document.getElementById('navbar').classList.remove('hidden');
+            renderUI();
+        }
 
         function saveKey() {
             const inputField = document.getElementById('api-key').value;
-            if (!inputField) return; // Si està buit, no fa res
-            KEY = inputField.trim(); // Elimina espais residuals
+            if (!inputField) return;
+            KEY = inputField.trim();
             localStorage.setItem('gemini_key', KEY);
-            showApp();
-        }
-
-        function showApp() {
-            document.getElementById('setup-card').classList.add('hidden');
-            document.getElementById('main-app').classList.remove('hidden');
+            location.reload(); // Recarreguem per aplicar els canvis
         }
 
         function showSetup() {
             document.getElementById('setup-card').classList.remove('hidden');
-            document.getElementById('main-app').classList.add('hidden');
+            document.getElementById('tab-diari').classList.add('hidden');
+            document.getElementById('navbar').classList.add('hidden');
+        }
+
+        function switchTab(tab) {
+            // Canviar pestanyes
+            document.getElementById('tab-diari').classList.add('hidden');
+            document.getElementById('tab-progres').classList.add('hidden');
+            document.getElementById('nav-diari').classList.remove('active');
+            document.getElementById('nav-progres').classList.remove('active');
+
+            document.getElementById('tab-' + tab).classList.remove('hidden');
+            document.getElementById('nav-' + tab).classList.add('active');
+
+            if (tab === 'progres') renderHistory();
+        }
+
+        function saveData() {
+            localStorage.setItem('food_ctrl_data', JSON.stringify(appData));
         }
 
         async function askAI() {
@@ -87,7 +148,7 @@
             const prompt = `Ets Food-ctrl, expert en dieta Enlínia. Analitza: "${input}". 
             Usa aquestes regles: 
             - Cafè amb llet (125ml): 2 pts, 60 kcal, 4g prot, 4g greix.
-            - Taronja: 0 pts, 60 kcal, 1g prot.
+            - Taronja: 0 pts, 60 kcal.
             - Galtes porc (100g): 5 pts, 250 kcal, 15g prot.
             - Cervesa (330ml): 5 pts, 150 kcal.
             - Olives (8 verdes): 1 pt.
@@ -96,31 +157,42 @@
             RESPON ÚNICAMENT I EXCLUSIVAMENT AMB UN OBJECTE JSON. NO AFEGEIXIS CAP TEXT ABANS NI DESPRÉS. FORMAT ESPERAT: {"nom": "títol resum", "punts": 0, "kcal": 0, "prot": 0, "greixos": 0}`;
 
             try {
-                // Hem afegit "-latest" a l'URL perquè no doni l'error 404
-const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${KEY}`, {
-    method: 'POST',
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${KEY}`, {
+                    method: 'POST',
                     headers: {'Content-Type': 'application/json'},
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
                 });
 
-                if (!response.ok) {
-                    throw new Error("Clau incorrecta o error de connexió.");
-                }
+                if (!response.ok) throw new Error("Error API");
 
                 const data = await response.json();
                 let text = data.candidates[0].content.parts[0].text;
-                
-                // Neteja per trobar només els números del JSON
-                let jsonInici = text.indexOf('{');
-                let jsonFi = text.lastIndexOf('}') + 1;
-                let jsonNet = text.substring(jsonInici, jsonFi);
+                let jsonNet = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
                 
                 const res = JSON.parse(jsonNet);
-                updateStats(res);
+                
+                // Actualitzar dades
+                let p = res.punts || 0;
+                if (consumed.p + p > limits.p) {
+                    let diff = (consumed.p + p) - limits.p;
+                    consumed.p = limits.p;
+                    appData.extres -= diff; // Restem dels extres setmanals globals
+                } else {
+                    consumed.p += p;
+                }
+                
+                consumed.k += res.kcal || 0;
+                consumed.pr += res.prot || 0;
+                consumed.g += res.greixos || 0;
+                
+                // Guardar l'element a l'historial del dia
+                consumed.items.push({ nom: res.nom, punts: p, kcal: res.kcal || 0 });
+                saveData();
+                renderUI();
                 
             } catch (e) {
                 console.error(e);
-                alert("Error de connexió. Siusplau, revisa que la nova API Key estigui enganxada correctament.");
+                alert("Error de connexió amb la IA. Revisa l'API Key.");
             } finally {
                 btn.disabled = false;
                 btn.innerText = "🚀 Calcular amb IA";
@@ -128,27 +200,47 @@ const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/m
             }
         }
 
-        function updateStats(res) {
-            let p = res.punts || 0;
-            if (consumed.p + p > limits.p) {
-                let diff = (consumed.p + p) - limits.p;
-                consumed.p = limits.p;
-                consumed.e += diff;
-            } else {
-                consumed.p += p;
-            }
-            consumed.k += res.kcal || 0;
-            consumed.pr += res.prot || 0;
-
+        function renderUI() {
+            // Actualitzar Caixes de dades
             document.getElementById('v-p').innerText = `${limits.p - consumed.p}/${limits.p}`;
-            document.getElementById('v-e').innerText = `${limits.e - consumed.e}/${limits.e}`;
+            document.getElementById('v-e').innerText = `${appData.extres}/${limits.e}`;
             document.getElementById('v-k').innerText = limits.k - consumed.k;
             document.getElementById('v-pr').innerText = (limits.pr - consumed.pr) + "g";
 
-            const li = document.createElement('li');
-            li.innerHTML = `<span><b>${res.nom}</b></span> <span>${p} pts | ${res.kcal} kcal</span>`;
-            document.getElementById('log').prepend(li);
+            // Colors d'alerta
+            document.getElementById('box-p').className = (limits.p - consumed.p <= 0) ? 'stat alert' : 'stat';
+            document.getElementById('box-e').className = (appData.extres < 0) ? 'stat alert' : 'stat';
+
+            // Dibuixar llista del dia
+            const logHTML = document.getElementById('log');
+            logHTML.innerHTML = "";
+            consumed.items.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'log-item';
+                li.innerHTML = `<span><b>${item.nom}</b></span> <span>${item.punts} pts | ${item.kcal} kcal</span>`;
+                logHTML.prepend(li);
+            });
         }
-    </script>
-</body>
-</html>
+
+        function renderHistory() {
+            const container = document.getElementById('history-list');
+            container.innerHTML = "";
+            
+            // Ordenar de més recent a més antic
+            const dies = Object.keys(appData.history).sort().reverse();
+            
+            dies.forEach(dia => {
+                const dadesDia = appData.history[dia];
+                const percentatge = Math.min((dadesDia.p / limits.p) * 100, 100);
+                const colorClasse = dadesDia.p >= limits.p ? 'progress-bar-fill over' : 'progress-bar-fill';
+                
+                // Formatar la data bonic
+                const dataFormatada = new Date(dia).toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+
+                const div = document.createElement('div');
+                div.className = 'progress-day';
+                div.innerHTML = `
+                    <div class="day-date">${dataFormatada}</div>
+                    <div class="day-stats">${dadesDia.p} punts consumits | ${dadesDia.k} kcal</div>
+                    <div class="progress-bar-bg">
+                        <div class="${colorClasse}" style="width: ${percent
