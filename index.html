@@ -87,7 +87,7 @@
         const limits = { p: 29, e: 12, k: 1800, pr: 140, g: 55 };
         
         // GESTIÓ DE DADES I DIES
-        let today = new Date().toISOString().split('T')[0]; // Exemple: "2023-10-25"
+        let today = new Date().toISOString().split('T')[0];
         let appData = JSON.parse(localStorage.getItem('food_ctrl_data')) || { extres: limits.e, history: {} };
         
         // Si avui no existeix a l'historial, el creem buit
@@ -111,7 +111,7 @@
             if (!inputField) return;
             KEY = inputField.trim();
             localStorage.setItem('gemini_key', KEY);
-            location.reload(); // Recarreguem per aplicar els canvis
+            location.reload(); 
         }
 
         function showSetup() {
@@ -121,7 +121,6 @@
         }
 
         function switchTab(tab) {
-            // Canviar pestanyes
             document.getElementById('tab-diari').classList.add('hidden');
             document.getElementById('tab-progres').classList.add('hidden');
             document.getElementById('nav-diari').classList.remove('active');
@@ -171,12 +170,11 @@
                 
                 const res = JSON.parse(jsonNet);
                 
-                // Actualitzar dades
                 let p = res.punts || 0;
                 if (consumed.p + p > limits.p) {
                     let diff = (consumed.p + p) - limits.p;
                     consumed.p = limits.p;
-                    appData.extres -= diff; // Restem dels extres setmanals globals
+                    appData.extres -= diff; 
                 } else {
                     consumed.p += p;
                 }
@@ -185,7 +183,6 @@
                 consumed.pr += res.prot || 0;
                 consumed.g += res.greixos || 0;
                 
-                // Guardar l'element a l'historial del dia
                 consumed.items.push({ nom: res.nom, punts: p, kcal: res.kcal || 0 });
                 saveData();
                 renderUI();
@@ -201,17 +198,14 @@
         }
 
         function renderUI() {
-            // Actualitzar Caixes de dades
             document.getElementById('v-p').innerText = `${limits.p - consumed.p}/${limits.p}`;
             document.getElementById('v-e').innerText = `${appData.extres}/${limits.e}`;
             document.getElementById('v-k').innerText = limits.k - consumed.k;
             document.getElementById('v-pr').innerText = (limits.pr - consumed.pr) + "g";
 
-            // Colors d'alerta
             document.getElementById('box-p').className = (limits.p - consumed.p <= 0) ? 'stat alert' : 'stat';
             document.getElementById('box-e').className = (appData.extres < 0) ? 'stat alert' : 'stat';
 
-            // Dibuixar llista del dia
             const logHTML = document.getElementById('log');
             logHTML.innerHTML = "";
             consumed.items.forEach(item => {
@@ -226,7 +220,6 @@
             const container = document.getElementById('history-list');
             container.innerHTML = "";
             
-            // Ordenar de més recent a més antic
             const dies = Object.keys(appData.history).sort().reverse();
             
             dies.forEach(dia => {
@@ -234,7 +227,6 @@
                 const percentatge = Math.min((dadesDia.p / limits.p) * 100, 100);
                 const colorClasse = dadesDia.p >= limits.p ? 'progress-bar-fill over' : 'progress-bar-fill';
                 
-                // Formatar la data bonic
                 const dataFormatada = new Date(dia).toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric', month: 'short' });
 
                 const div = document.createElement('div');
@@ -243,4 +235,12 @@
                     <div class="day-date">${dataFormatada}</div>
                     <div class="day-stats">${dadesDia.p} punts consumits | ${dadesDia.k} kcal</div>
                     <div class="progress-bar-bg">
-                        <div class="${colorClasse}" style="width: ${percent
+                        <div class="${colorClasse}" style="width: ${percentatge}%;"></div>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>
