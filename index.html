@@ -64,9 +64,11 @@
             showApp();
         }
 
-        function showApp() {
-            document.getElementById('setup-card').classList.add('hidden');
-            document.getElementById('main-app').classList.remove('hidden');
+function saveKey() {
+            // El .trim() elimina qualsevol espai accidental al principi o al final
+            KEY = document.getElementById('api-key').value.trim(); 
+            localStorage.setItem('gemini_key', KEY);
+            showApp();
         }
 
         function showSetup() {
