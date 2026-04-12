@@ -3,61 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food-ctrl AI Pro</title>
+    <title>Food-ctrl Dashboard AI</title>
     <style>
-        body { font-family: -apple-system, system-ui, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #f0f2f5; padding-bottom: 70px; }
-        .card { background: white; padding: 20px; border-radius: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h2 { margin-top: 0; font-size: 18px; color: #1a73e8; }
-        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .stat { background: #e8f0fe; padding: 15px; border-radius: 10px; text-align: center; }
-        .stat.alert { background: #fce8e6; color: #d93025; }
-        .label { font-size: 11px; text-transform: uppercase; color: #5f6368; display: block; }
-        .value { font-size: 20px; font-weight: bold; }
-        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #dadce0; border-radius: 8px; box-sizing: border-box; font-size: 16px; }
-        button.primary-btn { width: 100%; padding: 15px; background: #1a73e8; color: white; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        /* SINFÒNICA DE DISSENY MODERN - BASAT EN REFERÈNCIA AMB ACCENT TARONJA */
+        body { font-family: -apple-system, system-ui, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #fdfaf5; padding-bottom: 70px; color: #333; }
+        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); margin-bottom: 25px; border: 1px solid #eee; }
+        h1.dashboard-title { text-align: left; color: #1a1a1a; font-size: 24px; font-weight: 800; margin-top: 10px; margin-bottom: 25px; }
+        .profile-simulation { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #eee; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        h2 { margin-top: 0; font-size: 18px; color: #1a1a1a; font-weight: 700; margin-bottom: 15px;}
+        
+        /* Dashboard Prominent i Macro bars */
+        .dashboard-header { background: #fff; padding: 30px; border-radius: 25px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); margin-bottom: 25px; border: 1px solid #eee; position: relative;}
+        .calories-remaining { text-align: center; margin-bottom: 20px; }
+        .calories-value { font-size: 48px; font-weight: 900; color: #1a1a1a; }
+        .calories-label { font-size: 14px; text-transform: uppercase; color: #7f8c8d; font-weight: 600; display: block;}
+        
+        .grid-stats-compact { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;}
+        .stat-compact { background: #fdf1e8; padding: 15px; border-radius: 12px; text-align: center;}
+        .stat-compact.alert { background: #fcedec; color: #c0392b; border: 1px solid #f8d7da;}
+        .stat-compact span.label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; color: #7f8c8d; margin-bottom: 5px; display: block;}
+        .stat-compact span.value { font-size: 20px; font-weight: 800; color: #1a1a1a;}
+        .stat-compact.alert span.value { color: #c0392b; }
+
+        input, textarea { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #dadce0; border-radius: 10px; box-sizing: border-box; font-size: 16px; color: #333;}
+        button.primary-btn { width: 100%; padding: 18px; background: #f97316; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; transition: background 0.2s;}
         button.primary-btn:disabled { background: #ccc; }
-        #settings-btn { background: none; color: #1a73e8; font-size: 12px; text-decoration: underline; border: none; cursor: pointer; margin-top: 10px; width: 100%; }
+        button.primary-btn:hover:not(:disabled) { background: #f79c2a; }
+        #settings-btn { background: none; color: #f97316; font-size: 13px; text-decoration: underline; border: none; cursor: pointer; margin-top: 15px; width: 100%; }
         .hidden { display: none !important; }
         ul { list-style: none; padding: 0; margin: 0; }
-        li.log-item { background: #fff; padding: 12px; border-radius: 8px; margin-bottom: 10px; border-left: 5px solid #1a73e8; display: flex; justify-content: space-between; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        li.log-item { background: #fdf1e8; padding: 15px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #eee; display: flex; flex-direction: column; text-align: center; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
+        .item-nom { font-weight: 800; color: #1a1a1a; font-size: 16px;}
+        .item-dades { font-size: 12px; text-transform: uppercase; color: #7f8c8d; font-weight: bold; margin-top: 3px;}
         
-        /* Estils per l'historial de progrés */
-        .progress-day { border-bottom: 1px solid #eee; padding: 15px 0; }
+        /* Estils per l'historial de progrés - Taronja i Net */
+        .progress-day { border-bottom: 1px solid #eee; padding: 20px 0; }
         .progress-day:last-child { border-bottom: none; }
-        .day-date { font-weight: bold; color: #34495e; margin-bottom: 5px; }
-        .day-stats { font-size: 14px; color: #7f8c8d; }
-        .progress-bar-bg { background: #ecf0f1; height: 10px; border-radius: 5px; margin-top: 8px; overflow: hidden; }
-        .progress-bar-fill { background: #2ecc71; height: 100%; }
+        .day-date { font-weight: bold; color: #1a1a1a; margin-bottom: 7px; font-size: 16px;}
+        .day-stats { font-size: 13px; color: #7f8c8d; font-weight: 600;}
+        .progress-bar-bg { background: #ecf0f1; height: 10px; border-radius: 5px; margin-top: 10px; overflow: hidden; }
+        .progress-bar-fill { background: #f97316; height: 100%; }
         .progress-bar-fill.over { background: #e74c3c; }
 
         /* Navegació inferior */
-        .navbar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); padding-bottom: env(safe-area-inset-bottom); }
-        .nav-item { flex: 1; text-align: center; padding: 15px 0; color: #7f8c8d; font-weight: bold; cursor: pointer; }
-        .nav-item.active { color: #1a73e8; border-top: 3px solid #1a73e8; background: #f8faff; }
+        .navbar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; box-shadow: 0 -3px 15px rgba(0,0,0,0.08); padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid #eee; }
+        .nav-item { flex: 1; text-align: center; padding: 20px 0; color: #7f8c8d; font-weight: bold; cursor: pointer; font-size: 15px;}
+        .nav-item.active { color: #f97316; }
     </style>
 </head>
 <body>
 
-    <h1 style="text-align: center; color: #2c3e50;">🍏 Food-ctrl</h1>
+    <div class="profile-simulation">
+        <div class="avatar"></div> </div>
+    <h1 class="dashboard-title">🍏 Food-ctrl Dashboard</h1>
 
     <div id="setup-card" class="card">
         <h2>Configuració</h2>
-        <p style="font-size: 12px;">Enganxa la teva API Key secreta de Gemini:</p>
+        <p style="font-size: 13px; color: #7f8c8d; margin-top: 0;">Enganxa la teva API Key secreta de Gemini:</p>
         <input type="password" id="api-key" placeholder="AIzaSy...">
         <button class="primary-btn" onclick="saveKey()">Desar Clau</button>
     </div>
 
     <div id="tab-diari" class="hidden">
-        <div class="card">
-            <h2>Resum d'Avui</h2>
-            <div class="grid">
-                <div class="stat" id="box-p"> <span class="label">Punts</span> <span class="value" id="v-p">29/29</span> </div>
-                <div class="stat" id="box-e"> <span class="label">Extres</span> <span class="value" id="v-e">12/12</span> </div>
-                <div class="stat"> <span class="label">Calories Rest.</span> <span class="value" id="v-k">1800</span> </div>
-                <div class="stat"> <span class="label">Prot. Restants</span> <span class="value" id="v-pr">140g</span> </div>
+        <div class="dashboard-header">
+            <div class="calories-remaining">
+                <span class="calories-value" id="v-k">1800</span>
+                <span class="calories-label">Calories Restants</span>
             </div>
             
-            <textarea id="userInput" placeholder="Ex: Un plat de galtes de porc i un cafè amb llet petit..."></textarea>
+            <div class="grid-stats-compact">
+                <div class="stat-compact" id="box-p"> <span class="label">Punts d'Avui</span> <span class="value" id="v-p">29/29</span> </div>
+                <div class="stat-compact" id="box-e"> <span class="label">Extres Setmanals</span> <span class="value" id="v-e">12/12</span> </div>
+                <div class="stat-compact"> <span class="label">Proteïna Restant</span> <span class="value" id="v-pr">140g</span> </div>
+            </div>
+
+            <textarea id="userInput" placeholder="Ex: M'he menjat 2 cafès amb llet i una taronja..."></textarea>
             <button class="primary-btn" id="sendBtn" onclick="askAI()">🚀 Calcular amb IA</button>
             <button id="settings-btn" onclick="showSetup()">Configurar API Key</button>
         </div>
@@ -70,8 +91,8 @@
 
     <div id="tab-progres" class="hidden">
         <div class="card">
-            <h2>El teu Historial</h2>
-            <p style="font-size: 13px; color: #7f8c8d;">Aquí veuràs com vas gastant els teus 29 punts diaris.</p>
+            <h2>El teu Historial de Punts</h2>
+            <p style="font-size: 13px; color: #7f8c8d; margin-top: 0;">Aquí veuràs com vas gastant els teus 29 punts diaris.</p>
             <div id="history-list"></div>
         </div>
     </div>
@@ -198,20 +219,23 @@
         }
 
         function renderUI() {
+            // Actualitzar visualització central i marcadors
+            document.getElementById('v-k').innerText = limits.k - consumed.k;
             document.getElementById('v-p').innerText = `${limits.p - consumed.p}/${limits.p}`;
             document.getElementById('v-e').innerText = `${appData.extres}/${limits.e}`;
-            document.getElementById('v-k').innerText = limits.k - consumed.k;
             document.getElementById('v-pr').innerText = (limits.pr - consumed.pr) + "g";
 
-            document.getElementById('box-p').className = (limits.p - consumed.p <= 0) ? 'stat alert' : 'stat';
-            document.getElementById('box-e').className = (appData.extres < 0) ? 'stat alert' : 'stat';
+            // Colors d'alerta
+            document.getElementById('box-p').className = (limits.p - consumed.p <= 0) ? 'stat-compact alert' : 'stat-compact';
+            document.getElementById('box-e').className = (appData.extres < 0) ? 'stat-compact alert' : 'stat-compact';
 
+            // Dibuixar llista del dia bonic
             const logHTML = document.getElementById('log');
             logHTML.innerHTML = "";
             consumed.items.forEach(item => {
                 const li = document.createElement('li');
                 li.className = 'log-item';
-                li.innerHTML = `<span><b>${item.nom}</b></span> <span>${item.punts} pts | ${item.kcal} kcal</span>`;
+                li.innerHTML = `<span class="item-nom">${item.nom}</span> <span class="item-dades">${item.punts} pts | ${item.kcal} kcal</span>`;
                 logHTML.prepend(li);
             });
         }
