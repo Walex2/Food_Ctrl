@@ -6,13 +6,14 @@ const RESPONSE_SCHEMA = {
     properties: {
         type: { type: 'STRING', enum: ['food', 'exercise'] },
         name: { type: 'STRING' },
+        grams: { type: 'NUMBER' },
         kcal: { type: 'NUMBER' },
         prot: { type: 'NUMBER' },
         fat: { type: 'NUMBER' },
         carb: { type: 'NUMBER' },
         punts: { type: 'NUMBER' }
     },
-    required: ['type', 'name', 'kcal', 'prot', 'fat', 'carb', 'punts']
+    required: ['type', 'name', 'grams', 'kcal', 'prot', 'fat', 'carb', 'punts']
 };
 
 function toNum(v, max) {
@@ -51,7 +52,8 @@ export default async function handler(req, res) {
         const systemPrompt = `Eres el motor nutricional de la app Food-ctrl. El usuario pesa ${weight}kg.
         Analiza la comida o el ejercicio descrito (o la imagen adjunta).
         - Si es caminata en KM, calcula (${weight} * 0.72) kcal quemadas por cada KM.
-        - Si es ejercicio, pon prot, fat, carb y punts a 0.
+        - Si es ejercicio, pon grams, prot, fat, carb y punts a 0.
+        - Si es comida, "grams" es el peso total estimado de la ración en gramos (ml si es bebida); todos los valores corresponden a esa cantidad.
         - Si es comida, calcula las calorías y los gramos exactos de proteína, grasa y carbohidratos.
         - Calcula también los "punts" (Puntos Enlínia): frutas/verduras naturales = 0 puntos; para el resto estima 1 punto por cada ~40 kcal (penalizando un poco más grasas y azúcares).
         - El campo "name" debe ser un nombre corto en catalán.`;
@@ -100,6 +102,7 @@ export default async function handler(req, res) {
         return res.status(200).json({
             type: isEx ? 'exercise' : 'food',
             name: String(parsed.name || 'Sense nom').slice(0, 80),
+            grams: isEx ? 0 : toNum(parsed.grams, 5000),
             kcal: toNum(parsed.kcal, 5000),
             prot: isEx ? 0 : toNum(parsed.prot, 500),
             fat: isEx ? 0 : toNum(parsed.fat, 500),
