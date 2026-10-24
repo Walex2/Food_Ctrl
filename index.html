@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Food-ctrl | Nutrition Banking UI</title>
+    <title>Food-ctrl</title>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -44,8 +44,6 @@
             font-weight: 800; font-size: 16px;
         }
         .brand-title { font-size: 18px; font-weight: 800; letter-spacing: -0.4px; margin: 0; }
-        .brand-sub { font-size: 11px; color: var(--text-muted); font-weight: 600; display: block; }
-
         .top-actions { display: flex; gap: 8px; }
         .pill-btn {
             height: 38px; padding: 0 12px; border-radius: 12px;
@@ -204,6 +202,13 @@
             background: #fff; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
         }
         .type-toggle button.active { background: var(--obsidian); color: #fff; border-color: var(--obsidian); }
+        .portion-row { display: flex; gap: 6px; }
+        .portion-row input { flex: 1; min-width: 0; }
+        .portion-btn {
+            width: 44px; flex-shrink: 0; border-radius: 10px; border: 1px solid var(--border-light);
+            background: #fff; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
+        }
+        .portion-btn.active { background: var(--obsidian); color: #fff; border-color: var(--obsidian); }
         .sheet-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
         .btn-ghost {
             height: 44px; border-radius: 12px; border: 1px solid var(--border-light);
@@ -232,7 +237,6 @@
             <div class="brand-logo">FC</div>
             <div>
                 <h1 class="brand-title">Food-ctrl</h1>
-                <span class="brand-sub">Nutrition Ledger</span>
             </div>
         </div>
         <div class="top-actions">
@@ -342,7 +346,7 @@
                 <button class="icon-action" onclick="document.getElementById('cam-input').click()" title="Pujar foto">📷</button>
                 <input type="file" id="cam-input" accept="image/*" style="display:none" onchange="previewPhoto(event)">
             </div>
-            <button class="btn-submit" id="analyze-btn" onclick="analyzeEntry()">⚡ Registrar Moviment amb IA</button>
+            <button class="btn-submit" id="analyze-btn" onclick="analyzeEntry()">⚡ Registrar amb IA</button>
         </div>
 
         <div class="section-header">
@@ -380,6 +384,15 @@
             </div>
             <div class="form-grid">
                 <div class="full"><label>Nom</label><input type="text" id="cf-name"></div>
+                <div class="full cf-food-only"><label>Quantitat (g) · ració</label>
+                    <div class="portion-row">
+                        <input type="number" inputmode="numeric" min="0" id="cf-grams" oninput="onGramsInput()">
+                        <button type="button" class="portion-btn" data-f="0.5" onclick="setPortion(0.5)">½</button>
+                        <button type="button" class="portion-btn" data-f="1" onclick="setPortion(1)">1</button>
+                        <button type="button" class="portion-btn" data-f="1.5" onclick="setPortion(1.5)">1½</button>
+                        <button type="button" class="portion-btn" data-f="2" onclick="setPortion(2)">2</button>
+                    </div>
+                </div>
                 <div><label>Kcal</label><input type="number" inputmode="numeric" min="0" id="cf-kcal"></div>
                 <div class="cf-food-only"><label>Punts</label><input type="number" inputmode="numeric" min="0" id="cf-punts"></div>
                 <div class="cf-food-only"><label>Proteïna (g)</label><input type="number" inputmode="numeric" min="0" id="cf-prot"></div>
@@ -574,7 +587,7 @@
                         <div class="tx-icon">${isEx ? '🏃‍♂️' : '🍽️'}</div>
                         <div>
                             <div class="tx-title">${escapeHTML(it.name)}</div>
-                            <div class="tx-meta">${isEx ? 'Abonament calòric per activitat' : `${it.punts || 0} pts • P:${it.prot}g G:${it.fat}g C:${it.carb}g`}</div>
+                            <div class="tx-meta">${isEx ? 'Abonament calòric per activitat' : `${it.grams ? it.grams + ' g • ' : ''}${it.punts || 0} pts • P:${it.prot}g G:${it.fat}g C:${it.carb}g`}</div>
                         </div>
                     </div>
                     <div class="tx-right">
@@ -680,7 +693,7 @@
                 alert(err.message || "No s'ha pogut connectar amb el servidor.");
             } finally {
                 btn.disabled = false;
-                btn.innerText = "⚡ Registrar Moviment amb IA";
+                btn.innerText = "⚡ Registrar amb IA";
             }
         }
 
@@ -691,12 +704,36 @@
             document.querySelectorAll('.cf-food-only').forEach(el => el.classList.toggle('hidden', type === 'exercise'));
         }
 
+        // Valors de la IA per a la ració estimada; la quantitat els escala proporcionalment
+        let portionBase = null;
+        const SCALED = ['kcal', 'punts', 'prot', 'fat', 'carb'];
+
+        function applyPortion(factor) {
+            SCALED.forEach(k => {
+                document.getElementById('cf-' + k).value = Math.round((portionBase[k] || 0) * factor);
+            });
+            document.querySelectorAll('.portion-btn').forEach(b =>
+                b.classList.toggle('active', Math.abs(parseFloat(b.dataset.f) - factor) < 0.001));
+        }
+
+        function setPortion(factor) {
+            if (portionBase.grams) document.getElementById('cf-grams').value = Math.round(portionBase.grams * factor);
+            applyPortion(factor);
+        }
+
+        function onGramsInput() {
+            const g = parseFloat(document.getElementById('cf-grams').value);
+            if (!portionBase.grams || !(g >= 0)) return;
+            applyPortion(g / portionBase.grams);
+        }
+
         function openConfirm(entry) {
             pendingEntry = { ...entry };
+            portionBase = { ...entry };
             document.getElementById('cf-name').value = entry.name || '';
-            ['kcal', 'punts', 'prot', 'fat', 'carb'].forEach(k => {
-                document.getElementById('cf-' + k).value = entry[k] || 0;
-            });
+            document.getElementById('cf-grams').value = entry.grams || '';
+            document.getElementById('cf-grams').placeholder = entry.grams ? '' : 'Sense estimació';
+            setPortion(1);
             setConfirmType(entry.type === 'exercise' ? 'exercise' : 'food');
             document.getElementById('confirm-sheet').classList.remove('hidden');
         }
@@ -713,6 +750,7 @@
             const entry = {
                 type: isEx ? 'exercise' : 'food',
                 name: document.getElementById('cf-name').value.trim() || (isEx ? 'Exercici' : 'Menjar'),
+                grams: isEx ? 0 : num('cf-grams'),
                 kcal: num('cf-kcal'),
                 prot: isEx ? 0 : num('cf-prot'),
                 fat: isEx ? 0 : num('cf-fat'),
