@@ -1,270 +1,508 @@
 <!DOCTYPE html>
-<html lang="ca">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Food-ctrl Dashboard AI</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Food-ctrl | AI Nutrition Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Playfair+Display:wght@700;800&display=swap" rel="stylesheet">
     <style>
-        /* SINFÒNICA DE DISSENY MODERN - BASAT EN REFERÈNCIA AMB ACCENT TARONJA */
-        body { font-family: -apple-system, system-ui, sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #fdfaf5; padding-bottom: 70px; color: #333; }
-        .card { background: white; padding: 25px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.06); margin-bottom: 25px; border: 1px solid #eee; }
-        h1.dashboard-title { text-align: left; color: #1a1a1a; font-size: 24px; font-weight: 800; margin-top: 10px; margin-bottom: 25px; }
-        .profile-simulation { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
-        .avatar { width: 40px; height: 40px; border-radius: 50%; background: #eee; border: 2px solid #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        h2 { margin-top: 0; font-size: 18px; color: #1a1a1a; font-weight: 700; margin-bottom: 15px;}
-        
-        /* Dashboard Prominent i Macro bars */
-        .dashboard-header { background: #fff; padding: 30px; border-radius: 25px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); margin-bottom: 25px; border: 1px solid #eee; position: relative;}
-        .calories-remaining { text-align: center; margin-bottom: 20px; }
-        .calories-value { font-size: 48px; font-weight: 900; color: #1a1a1a; }
-        .calories-label { font-size: 14px; text-transform: uppercase; color: #7f8c8d; font-weight: 600; display: block;}
-        
-        .grid-stats-compact { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;}
-        .stat-compact { background: #fdf1e8; padding: 15px; border-radius: 12px; text-align: center;}
-        .stat-compact.alert { background: #fcedec; color: #c0392b; border: 1px solid #f8d7da;}
-        .stat-compact span.label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: bold; color: #7f8c8d; margin-bottom: 5px; display: block;}
-        .stat-compact span.value { font-size: 20px; font-weight: 800; color: #1a1a1a;}
-        .stat-compact.alert span.value { color: #c0392b; }
-
-        input, textarea { width: 100%; padding: 15px; margin: 10px 0; border: 1px solid #dadce0; border-radius: 10px; box-sizing: border-box; font-size: 16px; color: #333;}
-        button.primary-btn { width: 100%; padding: 18px; background: #f97316; color: white; border: none; border-radius: 12px; font-weight: bold; cursor: pointer; font-size: 16px; transition: background 0.2s;}
-        button.primary-btn:disabled { background: #ccc; }
-        button.primary-btn:hover:not(:disabled) { background: #f79c2a; }
-        #settings-btn { background: none; color: #f97316; font-size: 13px; text-decoration: underline; border: none; cursor: pointer; margin-top: 15px; width: 100%; }
+        :root {
+            --bg-cream: #fdfaf5;
+            --card-white: #ffffff;
+            --accent-orange: #f58220;
+            --text-dark: #1e1e1e;
+            --text-muted: #8e8e93;
+            --blue-fat: #7da6ff;
+            --yellow-prot: #ffd43b;
+            --green-carb: #69db7c;
+            --border-soft: #f1ede4;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            font-family: 'DM Sans', -apple-system, sans-serif;
+            background-color: var(--bg-cream);
+            color: var(--text-dark);
+            max-width: 480px;
+            margin: 0 auto;
+            padding: 16px 18px 95px 18px;
+        }
+        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+        .avatar-btn {
+            padding: 0 12px; height: 42px; border-radius: 21px; background: #fff4eb;
+            color: var(--accent-orange); display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 14px; border: 1px solid #ffd8b5; cursor: pointer;
+        }
+        .topbar h1 { font-family: 'Playfair Display', serif; font-size: 26px; margin: 0; font-weight: 800; }
+        .icon-btn {
+            width: 42px; height: 42px; border-radius: 50%; background: #fff;
+            border: 1px solid var(--border-soft); display: flex; align-items: center;
+            justify-content: center; cursor: pointer; font-size: 18px;
+        }
+        .week-strip { display: flex; justify-content: space-between; gap: 6px; margin-bottom: 20px; }
+        .day-pill {
+            flex: 1; text-align: center; padding: 10px 4px; border-radius: 24px;
+            cursor: pointer; transition: all 0.2s; color: var(--text-muted); font-size: 12px;
+        }
+        .day-pill span.d-name { display: block; font-weight: 600; margin-bottom: 4px; }
+        .day-pill span.d-num { display: block; font-weight: 800; font-size: 14px; color: var(--text-dark); }
+        .day-pill.active {
+            background: var(--accent-orange); color: #fff;
+            box-shadow: 0 6px 15px rgba(245, 130, 32, 0.3);
+        }
+        .day-pill.active span.d-num { color: #fff; }
+        .card {
+            background: var(--card-white); border-radius: 26px; padding: 22px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.04); border: 1px solid var(--border-soft);
+            margin-bottom: 18px;
+        }
+        .cal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; }
+        .cal-header-left { display: flex; align-items: center; gap: 12px; }
+        .fire-badge {
+            width: 40px; height: 40px; border-radius: 12px; background: #fff4eb;
+            display: flex; align-items: center; justify-content: center; font-size: 20px;
+        }
+        .cal-header h2 { margin: 0; font-size: 18px; font-weight: 800; }
+        .cal-header p { margin: 2px 0 0 0; font-size: 12px; color: var(--text-muted); font-weight: 600; }
+        .points-badge {
+            background: #fdfaf5; border: 1px solid var(--border-soft); padding: 6px 12px;
+            border-radius: 14px; text-align: right; font-size: 12px; font-weight: 800; color: var(--accent-orange);
+        }
+        .dashboard-grid { display: grid; grid-template-columns: 1.1fr 1fr; gap: 16px; align-items: center; }
+        .donut-wrap { position: relative; width: 155px; height: 155px; margin: 0 auto; }
+        .donut-center {
+            position: absolute; inset: 0; display: flex; flex-direction: column;
+            align-items: center; justify-content: center; text-align: center;
+        }
+        .donut-center .lbl { font-size: 11px; color: var(--text-muted); font-weight: 600; }
+        .donut-center .val { font-size: 28px; font-weight: 800; line-height: 1.1; margin: 2px 0; }
+        .donut-center .unit { font-size: 11px; color: var(--text-muted); font-weight: 700; }
+        .macro-list { display: flex; flex-direction: column; gap: 12px; }
+        .macro-item .m-top { display: flex; justify-content: space-between; font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+        .macro-bar-bg { height: 7px; background: #f1f3f5; border-radius: 99px; overflow: hidden; }
+        .macro-bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s ease; }
+        .macro-sub { font-size: 12px; color: var(--text-muted); font-weight: 600; margin-top: 3px; }
+        .macro-sub b { color: var(--text-dark); }
+        .streak-bar {
+            display: flex; justify-content: space-around; background: #faf7f2;
+            border-radius: 14px; padding: 10px; margin-top: 18px; font-size: 12px; font-weight: 700;
+        }
+        .input-box { display: flex; flex-direction: column; gap: 10px; }
+        .input-row { display: flex; gap: 8px; align-items: center; }
+        .input-row input[type="text"] {
+            flex: 1; padding: 14px 16px; border-radius: 16px; border: 1px solid #e5e0d5;
+            font-size: 15px; background: #fdfaf5; outline: none;
+        }
+        .tool-btn {
+            width: 46px; height: 46px; border-radius: 14px; border: 1px solid #e5e0d5;
+            background: #fff; font-size: 20px; cursor: pointer; display: flex;
+            align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .tool-btn.recording { background: #ffe3e3; border-color: #ffa8a8; animation: pulse 1s infinite; }
+        @keyframes pulse { 50% { opacity: 0.5; } }
+        .send-btn {
+            width: 100%; padding: 14px; border-radius: 16px; border: none;
+            background: var(--accent-orange); color: #fff; font-weight: 800;
+            font-size: 15px; cursor: pointer; box-shadow: 0 4px 12px rgba(245,130,32,0.25);
+        }
+        .send-btn:disabled { background: #ccc; box-shadow: none; }
+        #photo-preview { width: 100%; max-height: 160px; object-fit: cover; border-radius: 14px; display: none; }
+        .section-title { font-family: 'Playfair Display', serif; font-size: 20px; font-weight: 800; margin: 6px 0 12px 4px; }
+        .meal-card {
+            background: #fff; border-radius: 18px; padding: 14px 16px; margin-bottom: 10px;
+            border: 1px solid var(--border-soft); display: flex; justify-content: space-between; align-items: center;
+        }
+        .meal-left { display: flex; align-items: center; gap: 12px; }
+        .meal-icon {
+            width: 40px; height: 40px; border-radius: 12px; background: #fff4eb;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .meal-title { font-weight: 700; font-size: 15px; }
+        .meal-macros { font-size: 12px; color: var(--text-muted); font-weight: 600; }
+        .meal-kcal { font-weight: 800; font-size: 14px; text-align: right; }
+        .del-btn { background: none; border: none; color: #ccc; font-size: 16px; cursor: pointer; margin-left: 8px; }
+        .bar-chart { display: flex; align-items: flex-end; justify-content: space-between; height: 150px; padding-top: 20px; gap: 8px; }
+        .bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; height: 100%; justify-content: flex-end; }
+        .bar-stack { width: 18px; border-radius: 8px; overflow: hidden; display: flex; flex-direction: column-reverse; background: #f1f3f5; }
+        .bar-lbl { font-size: 11px; color: var(--text-muted); margin-top: 6px; font-weight: 700; }
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; max-width: 480px; margin: 0 auto;
+            background: rgba(255,255,255,0.95); backdrop-filter: blur(10px);
+            display: flex; border-top: 1px solid var(--border-soft);
+            padding: 10px 20px calc(10px + env(safe-area-inset-bottom)); z-index: 100;
+        }
+        .nav-tab {
+            flex: 1; text-align: center; font-size: 13px; font-weight: 700;
+            color: var(--text-muted); cursor: pointer; padding: 8px; border-radius: 14px;
+        }
+        .nav-tab.active { color: var(--accent-orange); background: #fff4eb; }
         .hidden { display: none !important; }
-        ul { list-style: none; padding: 0; margin: 0; }
-        li.log-item { background: #fdf1e8; padding: 15px; border-radius: 12px; margin-bottom: 12px; border: 1px solid #eee; display: flex; flex-direction: column; text-align: center; font-size: 14px; box-shadow: 0 2px 5px rgba(0,0,0,0.03); }
-        .item-nom { font-weight: 800; color: #1a1a1a; font-size: 16px;}
-        .item-dades { font-size: 12px; text-transform: uppercase; color: #7f8c8d; font-weight: bold; margin-top: 3px;}
-        
-        /* Estils per l'historial de progrés - Taronja i Net */
-        .progress-day { border-bottom: 1px solid #eee; padding: 20px 0; }
-        .progress-day:last-child { border-bottom: none; }
-        .day-date { font-weight: bold; color: #1a1a1a; margin-bottom: 7px; font-size: 16px;}
-        .day-stats { font-size: 13px; color: #7f8c8d; font-weight: 600;}
-        .progress-bar-bg { background: #ecf0f1; height: 10px; border-radius: 5px; margin-top: 10px; overflow: hidden; }
-        .progress-bar-fill { background: #f97316; height: 100%; }
-        .progress-bar-fill.over { background: #e74c3c; }
-
-        /* Navegació inferior */
-        .navbar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; box-shadow: 0 -3px 15px rgba(0,0,0,0.08); padding-bottom: env(safe-area-inset-bottom); border-top: 1px solid #eee; }
-        .nav-item { flex: 1; text-align: center; padding: 20px 0; color: #7f8c8d; font-weight: bold; cursor: pointer; font-size: 15px;}
-        .nav-item.active { color: #f97316; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+        .form-grid label { font-size: 12px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; }
+        .form-grid input { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid #ddd; font-size: 15px; }
     </style>
 </head>
 <body>
 
-    <div class="profile-simulation">
-        <div class="avatar"></div> </div>
-    <h1 class="dashboard-title">🍏 Food-ctrl Dashboard</h1>
-
-    <div id="setup-card" class="card">
-        <h2>Configuració</h2>
-        <p style="font-size: 13px; color: #7f8c8d; margin-top: 0;">Enganxa la teva API Key secreta de Gemini:</p>
-        <input type="password" id="api-key" placeholder="AIzaSy...">
-        <button class="primary-btn" onclick="saveKey()">Desar Clau</button>
+    <div class="topbar">
+        <div class="avatar-btn" onclick="toggleProfileModal()">⚖️ <span id="w-badge">90</span> kg</div>
+        <h1>Dashboard</h1>
+        <button class="icon-btn" onclick="toggleProfileModal()" title="Ajustes de Perfil">⚙️</button>
     </div>
 
-    <div id="tab-diari" class="hidden">
-        <div class="dashboard-header">
-            <div class="calories-remaining">
-                <span class="calories-value" id="v-k">1800</span>
-                <span class="calories-label">Calories Restants</span>
-            </div>
-            
-            <div class="grid-stats-compact">
-                <div class="stat-compact" id="box-p"> <span class="label">Punts d'Avui</span> <span class="value" id="v-p">29/29</span> </div>
-                <div class="stat-compact" id="box-e"> <span class="label">Extres Setmanals</span> <span class="value" id="v-e">12/12</span> </div>
-                <div class="stat-compact"> <span class="label">Proteïna Restant</span> <span class="value" id="v-pr">140g</span> </div>
-            </div>
+    <div class="week-strip" id="week-strip"></div>
 
-            <textarea id="userInput" placeholder="Ex: M'he menjat 2 cafès amb llet i una taronja..."></textarea>
-            <button class="primary-btn" id="sendBtn" onclick="askAI()">🚀 Calcular amb IA</button>
-            <button id="settings-btn" onclick="showSetup()">Configurar API Key</button>
+    <!-- Modal de Perfil Multiusuario -->
+    <div id="profile-modal" class="card hidden">
+        <h3 style="margin-top:0">🎯 Tu Perfil y Objetivo</h3>
+        <p style="font-size:12px; color:var(--text-muted); margin-top:-8px;">Cualquier usuario puede personalizar sus datos aquí para recalcular sus macros automáticamente.</p>
+        <div class="form-grid">
+            <div><label>Peso actual (kg)</label><input type="number" step="0.1" id="p-weight" value="90"></div>
+            <div><label>Peso meta (kg)</label><input type="number" step="0.1" id="p-target" value="78"></div>
+            <div><label>Altura (cm)</label><input type="number" id="p-height" value="180"></div>
+            <div><label>Puntos Diarios</label><input type="number" id="p-points" value="29"></div>
         </div>
+        <button class="send-btn" onclick="saveProfile()">Calcular y Guardar Plan</button>
+    </div>
 
+    <!-- VISTA 1: DIARIO -->
+    <div id="view-diary">
         <div class="card">
-            <h2>Què has menjat avui?</h2>
-            <ul id="log"></ul>
+            <div class="cal-header">
+                <div class="cal-header-left">
+                    <div class="fire-badge">🔥</div>
+                    <div>
+                        <h2 id="goal-title">Meta: 1,900 kcal</h2>
+                        <p id="remaining-sub">Quedan 1,900 kcal hoy</p>
+                    </div>
+                </div>
+                <div class="points-badge">
+                    <div id="pts-rem">29 / 29 pts</div>
+                    <div style="font-size:10px; color:var(--text-muted)" id="ext-rem">Extras: 12</div>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="donut-wrap">
+                    <svg width="155" height="155" viewBox="0 0 42 42">
+                        <circle cx="21" cy="21" r="15.915" fill="transparent" stroke="#f1f3f5" stroke-width="4.5"></circle>
+                        <circle id="seg-fat" cx="21" cy="21" r="15.915" fill="transparent" stroke="#7da6ff" stroke-width="4.5" stroke-dasharray="0 100" stroke-dashoffset="25"></circle>
+                        <circle id="seg-prot" cx="21" cy="21" r="15.915" fill="transparent" stroke="#ffd43b" stroke-width="4.5" stroke-dasharray="0 100" stroke-dashoffset="25"></circle>
+                        <circle id="seg-carb" cx="21" cy="21" r="15.915" fill="transparent" stroke="#69db7c" stroke-width="4.5" stroke-dasharray="0 100" stroke-dashoffset="25"></circle>
+                    </svg>
+                    <div class="donut-center">
+                        <span class="lbl">Consumido</span>
+                        <span class="val" id="c-kcal">0</span>
+                        <span class="unit">KCal</span>
+                    </div>
+                </div>
+
+                <div class="macro-list">
+                    <div class="macro-item">
+                        <div class="m-top"><span>🥩 Proteína</span></div>
+                        <div class="macro-bar-bg"><div id="bar-prot" class="macro-bar-fill" style="background:var(--yellow-prot); width:0%"></div></div>
+                        <div class="macro-sub"><b id="c-prot">0g</b> / <span id="g-prot">160g</span></div>
+                    </div>
+                    <div class="macro-item">
+                        <div class="m-top"><span>🥑 Grasas</span></div>
+                        <div class="macro-bar-bg"><div id="bar-fat" class="macro-bar-fill" style="background:var(--blue-fat); width:0%"></div></div>
+                        <div class="macro-sub"><b id="c-fat">0g</b> / <span id="g-fat">60g</span></div>
+                    </div>
+                    <div class="macro-item">
+                        <div class="m-top"><span>🌾 Carbos</span></div>
+                        <div class="macro-bar-bg"><div id="bar-carb" class="macro-bar-fill" style="background:var(--green-carb); width:0%"></div></div>
+                        <div class="macro-sub"><b id="c-carb">0g</b> / <span id="g-carb">180g</span></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="streak-bar">
+                <span>✨ <b id="meals-count">0</b> registros hoy</span>
+                <span>🏃‍♂️ <b id="burned-count">+0</b> kcal extra</span>
+            </div>
         </div>
+
+        <div class="card input-box">
+            <img id="photo-preview" alt="Vista previa">
+            <div class="input-row">
+                <input type="text" id="food-input" placeholder="Ej: 2 cafés con leche o Caminé 4 km...">
+                <button class="tool-btn" id="mic-btn" onclick="toggleVoice()" title="Dictar por voz">🎤</button>
+                <button class="tool-btn" onclick="document.getElementById('cam-input').click()" title="Subir foto">📷</button>
+                <input type="file" id="cam-input" accept="image/*" style="display:none" onchange="previewPhoto(event)">
+            </div>
+            <button class="send-btn" id="analyze-btn" onclick="analyzeEntry()">➕ Registrar con IA</button>
+        </div>
+
+        <h3 class="section-title">Registros del Día</h3>
+        <div id="meals-list"></div>
     </div>
 
-    <div id="tab-progres" class="hidden">
+    <!-- VISTA 2: PROGRESO -->
+    <div id="view-progress" class="hidden">
         <div class="card">
-            <h2>El teu Historial de Punts</h2>
-            <p style="font-size: 13px; color: #7f8c8d; margin-top: 0;">Aquí veuràs com vas gastant els teus 29 punts diaris.</p>
-            <div id="history-list"></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:15px;">
+                <div>
+                    <div style="font-size:24px; font-weight:800;" id="week-total-kcal">0</div>
+                    <div style="font-size:12px; color:var(--text-muted)">Calorías últimos 7 días</div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-size:24px; font-weight:800;" id="week-avg-kcal">0</div>
+                    <div style="font-size:12px; color:var(--text-muted)">Media diaria</div>
+                </div>
+            </div>
+            <div class="bar-chart" id="week-chart"></div>
         </div>
     </div>
 
-    <div class="navbar hidden" id="navbar">
-        <div class="nav-item active" id="nav-diari" onclick="switchTab('diari')">📝 Diari</div>
-        <div class="nav-item" id="nav-progres" onclick="switchTab('progres')">📊 Progrés</div>
+    <div class="bottom-nav">
+        <div class="nav-tab active" id="tab-d" onclick="switchView('diary')">📋 Diario</div>
+        <div class="nav-tab" id="tab-p" onclick="switchView('progress')">📊 Progreso</div>
     </div>
 
     <script>
-        // CONFIGURACIÓ BÀSICA
-        let KEY = localStorage.getItem('gemini_key');
-        const limits = { p: 29, e: 12, k: 1800, pr: 140, g: 55 };
-        
-        // GESTIÓ DE DADES I DIES
-        let today = new Date().toISOString().split('T')[0];
-        let appData = JSON.parse(localStorage.getItem('food_ctrl_data')) || { extres: limits.e, history: {} };
-        
-        // Si avui no existeix a l'historial, el creem buit
-        if (!appData.history[today]) {
-            appData.history[today] = { p: 0, k: 0, pr: 0, g: 0, items: [] };
-            saveData();
+        let selectedDate = new Date().toISOString().split('T')[0];
+        let currentPhotoBase64 = null;
+        let db = JSON.parse(localStorage.getItem('fc_public_v1')) || {
+            profile: { weight: 90, target: 78, height: 180, kcal: 1900, prot: 160, fat: 60, carb: 180, points: 29, extras: 12 },
+            days: {}
+        };
+
+        function ensureDay(d) { if (!db.days[d]) db.days[d] = { items: [] }; }
+        function saveDB() { localStorage.setItem('fc_public_v1', JSON.stringify(db)); }
+
+        function init() {
+            document.getElementById('w-badge').innerText = db.profile.weight;
+            document.getElementById('p-weight').value = db.profile.weight;
+            document.getElementById('p-target').value = db.profile.target;
+            document.getElementById('p-height').value = db.profile.height;
+            document.getElementById('p-points').value = db.profile.points;
+            renderWeekStrip();
+            renderDay();
         }
 
-        let consumed = appData.history[today];
-
-        // INICI DE L'APP
-        if(KEY) {
-            document.getElementById('setup-card').classList.add('hidden');
-            document.getElementById('tab-diari').classList.remove('hidden');
-            document.getElementById('navbar').classList.remove('hidden');
-            renderUI();
+        function toggleProfileModal() {
+            document.getElementById('profile-modal').classList.toggle('hidden');
         }
 
-        function saveKey() {
-            const inputField = document.getElementById('api-key').value;
-            if (!inputField) return;
-            KEY = inputField.trim();
-            localStorage.setItem('gemini_key', KEY);
-            location.reload(); 
+        function saveProfile() {
+            const w = parseFloat(document.getElementById('p-weight').value) || 90;
+            const t = parseFloat(document.getElementById('p-target').value) || 78;
+            const h = parseFloat(document.getElementById('p-height').value) || 180;
+            const pts = parseInt(document.getElementById('p-points').value) || 29;
+
+            // Fórmula automática de déficit saludable
+            const tdee = Math.round((10 * w + 6.25 * h - 5 * 35 + 5) * 1.3);
+            const targetKcal = t < w ? Math.max(1400, tdee - 500) : tdee;
+            const prot = Math.round(w * 1.8);
+            const fat = Math.round(w * 0.68);
+            const carb = Math.max(80, Math.round((targetKcal - (prot * 4 + fat * 9)) / 4));
+
+            db.profile = { weight: w, target: t, height: h, kcal: targetKcal, prot, fat, carb, points: pts, extras: 12 };
+            saveDB();
+            document.getElementById('w-badge').innerText = w;
+            document.getElementById('profile-modal').classList.add('hidden');
+            renderDay();
         }
 
-        function showSetup() {
-            document.getElementById('setup-card').classList.remove('hidden');
-            document.getElementById('tab-diari').classList.add('hidden');
-            document.getElementById('navbar').classList.add('hidden');
-        }
-
-        function switchTab(tab) {
-            document.getElementById('tab-diari').classList.add('hidden');
-            document.getElementById('tab-progres').classList.add('hidden');
-            document.getElementById('nav-diari').classList.remove('active');
-            document.getElementById('nav-progres').classList.remove('active');
-
-            document.getElementById('tab-' + tab).classList.remove('hidden');
-            document.getElementById('nav-' + tab).classList.add('active');
-
-            if (tab === 'progres') renderHistory();
-        }
-
-        function saveData() {
-            localStorage.setItem('food_ctrl_data', JSON.stringify(appData));
-        }
-
-        async function askAI() {
-            const input = document.getElementById('userInput').value;
-            const btn = document.getElementById('sendBtn');
-            if(!input) return;
-
-            btn.disabled = true;
-            btn.innerText = "Pensant...";
-
-            const prompt = `Ets Food-ctrl, expert en dieta Enlínia. Analitza: "${input}". 
-            Usa aquestes regles: 
-            - Cafè amb llet (125ml): 2 pts, 60 kcal, 4g prot, 4g greix.
-            - Taronja: 0 pts, 60 kcal.
-            - Galtes porc (100g): 5 pts, 250 kcal, 15g prot.
-            - Cervesa (330ml): 5 pts, 150 kcal.
-            - Olives (8 verdes): 1 pt.
-            - Raïm/Fruita: 0 pts (fins a 3/dia).
-            Si no coneixes l'aliment, estima segons la lògica de 1 punt = 40 kcal aprox (però greixos sumen més).
-            RESPON ÚNICAMENT I EXCLUSIVAMENT AMB UN OBJECTE JSON. NO AFEGEIXIS CAP TEXT ABANS NI DESPRÉS. FORMAT ESPERAT: {"nom": "títol resum", "punts": 0, "kcal": 0, "prot": 0, "greixos": 0}`;
-
-            try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${KEY}`, {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-
-                if (!response.ok) throw new Error("Error API");
-
-                const data = await response.json();
-                let text = data.candidates[0].content.parts[0].text;
-                let jsonNet = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
-                
-                const res = JSON.parse(jsonNet);
-                
-                let p = res.punts || 0;
-                if (consumed.p + p > limits.p) {
-                    let diff = (consumed.p + p) - limits.p;
-                    consumed.p = limits.p;
-                    appData.extres -= diff; 
-                } else {
-                    consumed.p += p;
-                }
-                
-                consumed.k += res.kcal || 0;
-                consumed.pr += res.prot || 0;
-                consumed.g += res.greixos || 0;
-                
-                consumed.items.push({ nom: res.nom, punts: p, kcal: res.kcal || 0 });
-                saveData();
-                renderUI();
-                
-            } catch (e) {
-                console.error(e);
-                alert("Error de connexió amb la IA. Revisa l'API Key.");
-            } finally {
-                btn.disabled = false;
-                btn.innerText = "🚀 Calcular amb IA";
-                document.getElementById('userInput').value = "";
+        function renderWeekStrip() {
+            const strip = document.getElementById('week-strip');
+            strip.innerHTML = '';
+            const names = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+            for (let i = 6; i >= 0; i--) {
+                const dt = new Date();
+                dt.setDate(dt.getDate() - i);
+                const iso = dt.toISOString().split('T')[0];
+                const pill = document.createElement('div');
+                pill.className = 'day-pill' + (iso === selectedDate ? ' active' : '');
+                pill.onclick = () => { selectedDate = iso; renderWeekStrip(); renderDay(); };
+                pill.innerHTML = `<span class="d-name">${names[dt.getDay()]}</span><span class="d-num">${String(dt.getDate()).padStart(2,'0')}</span>`;
+                strip.appendChild(pill);
             }
         }
 
-        function renderUI() {
-            // Actualitzar visualització central i marcadors
-            document.getElementById('v-k').innerText = limits.k - consumed.k;
-            document.getElementById('v-p').innerText = `${limits.p - consumed.p}/${limits.p}`;
-            document.getElementById('v-e').innerText = `${appData.extres}/${limits.e}`;
-            document.getElementById('v-pr').innerText = (limits.pr - consumed.pr) + "g";
+        function renderDay() {
+            ensureDay(selectedDate);
+            const G = db.profile;
+            const items = db.days[selectedDate].items;
+            let kcal = 0, prot = 0, fat = 0, carb = 0, burned = 0, ptsUsed = 0;
 
-            // Colors d'alerta
-            document.getElementById('box-p').className = (limits.p - consumed.p <= 0) ? 'stat-compact alert' : 'stat-compact';
-            document.getElementById('box-e').className = (appData.extres < 0) ? 'stat-compact alert' : 'stat-compact';
-
-            // Dibuixar llista del dia bonic
-            const logHTML = document.getElementById('log');
-            logHTML.innerHTML = "";
-            consumed.items.forEach(item => {
-                const li = document.createElement('li');
-                li.className = 'log-item';
-                li.innerHTML = `<span class="item-nom">${item.nom}</span> <span class="item-dades">${item.punts} pts | ${item.kcal} kcal</span>`;
-                logHTML.prepend(li);
+            items.forEach(it => {
+                if (it.type === 'exercise') burned += (it.kcal || 0);
+                else {
+                    kcal += (it.kcal || 0);
+                    prot += (it.prot || 0);
+                    fat += (it.fat || 0);
+                    carb += (it.carb || 0);
+                    ptsUsed += (it.punts || 0);
+                }
             });
-        }
 
-        function renderHistory() {
-            const container = document.getElementById('history-list');
-            container.innerHTML = "";
-            
-            const dies = Object.keys(appData.history).sort().reverse();
-            
-            dies.forEach(dia => {
-                const dadesDia = appData.history[dia];
-                const percentatge = Math.min((dadesDia.p / limits.p) * 100, 100);
-                const colorClasse = dadesDia.p >= limits.p ? 'progress-bar-fill over' : 'progress-bar-fill';
-                
-                const dataFormatada = new Date(dia).toLocaleDateString('ca-ES', { weekday: 'long', day: 'numeric', month: 'short' });
+            const totalBudget = G.kcal + burned;
+            const rem = totalBudget - kcal;
+            const remPts = Math.max(0, G.points - ptsUsed);
+            const extraUsed = Math.max(0, ptsUsed - G.points);
 
+            document.getElementById('goal-title').innerText = `Meta: ${totalBudget.toLocaleString()} kcal`;
+            document.getElementById('remaining-sub').innerText = rem >= 0 ? `Disponibles: ${rem} kcal` : `Exceso: ${Math.abs(rem)} kcal`;
+            document.getElementById('pts-rem').innerText = `${remPts} / ${G.points} pts`;
+            document.getElementById('ext-rem').innerText = `Extras: ${G.extras - extraUsed}/${G.extras}`;
+
+            document.getElementById('c-kcal').innerText = kcal;
+            document.getElementById('c-prot').innerText = prot + 'g';
+            document.getElementById('c-fat').innerText = fat + 'g';
+            document.getElementById('c-carb').innerText = carb + 'g';
+            document.getElementById('g-prot').innerText = G.prot + 'g';
+            document.getElementById('g-fat').innerText = G.fat + 'g';
+            document.getElementById('g-carb').innerText = G.carb + 'g';
+
+            document.getElementById('meals-count').innerText = items.length;
+            document.getElementById('burned-count').innerText = '+' + burned;
+
+            document.getElementById('bar-prot').style.width = Math.min(100, (prot/G.prot)*100) + '%';
+            document.getElementById('bar-fat').style.width = Math.min(100, (fat/G.fat)*100) + '%';
+            document.getElementById('bar-carb').style.width = Math.min(100, (carb/G.carb)*100) + '%';
+
+            const totalMacroG = Math.max(1, prot + fat + carb);
+            const pPct = Math.min(100, (kcal / totalBudget) * 100);
+            const fLen = (fat / totalMacroG) * pPct;
+            const prLen = (prot / totalMacroG) * pPct;
+            const cLen = (carb / totalMacroG) * pPct;
+
+            document.getElementById('seg-fat').setAttribute('stroke-dasharray', `${fLen} ${100 - fLen}`);
+            document.getElementById('seg-prot').setAttribute('stroke-dasharray', `${prLen} ${100 - prLen}`);
+            document.getElementById('seg-prot').setAttribute('stroke-dashoffset', 25 - fLen);
+            document.getElementById('seg-carb').setAttribute('stroke-dasharray', `${cLen} ${100 - cLen}`);
+            document.getElementById('seg-carb').setAttribute('stroke-dashoffset', 25 - fLen - prLen);
+
+            const list = document.getElementById('meals-list');
+            list.innerHTML = '';
+            items.slice().reverse().forEach((it, idx) => {
+                const realIdx = items.length - 1 - idx;
                 const div = document.createElement('div');
-                div.className = 'progress-day';
+                div.className = 'meal-card';
+                const isEx = it.type === 'exercise';
                 div.innerHTML = `
-                    <div class="day-date">${dataFormatada}</div>
-                    <div class="day-stats">${dadesDia.p} punts consumits | ${dadesDia.k} kcal</div>
-                    <div class="progress-bar-bg">
-                        <div class="${colorClasse}" style="width: ${percentatge}%;"></div>
+                    <div class="meal-left">
+                        <div class="meal-icon">${isEx ? '🏃‍♂️' : '🍽️'}</div>
+                        <div>
+                            <div class="meal-title">${it.name}</div>
+                            <div class="meal-macros">${isEx ? 'Ejercicio sumado al día' : `${it.punts || 0} pts • P:${it.prot}g G:${it.fat}g C:${it.carb}g`}</div>
+                        </div>
+                    </div>
+                    <div style="display:flex; align-items:center;">
+                        <div class="meal-kcal" style="color:${isEx ? '#2b8a3e' : '#1e1e1e'}">${isEx ? '+' : ''}${it.kcal} kcal</div>
+                        <button class="del-btn" onclick="deleteItem(${realIdx})">✕</button>
                     </div>
                 `;
-                container.appendChild(div);
+                list.appendChild(div);
             });
         }
+
+        function deleteItem(index) {
+            db.days[selectedDate].items.splice(index, 1);
+            saveDB();
+            renderDay();
+        }
+
+        function previewPhoto(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = () => {
+                currentPhotoBase64 = reader.result.split(',')[1];
+                const img = document.getElementById('photo-preview');
+                img.src = reader.result;
+                img.style.display = 'block';
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function toggleVoice() {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SpeechRecognition) return alert("Usa el micrófono del teclado de tu móvil.");
+            const rec = new SpeechRecognition();
+            rec.lang = 'es-ES';
+            const btn = document.getElementById('mic-btn');
+            btn.classList.add('recording');
+            rec.onresult = (e) => { document.getElementById('food-input').value = e.results[0][0].transcript; };
+            rec.onend = () => btn.classList.remove('recording');
+            rec.start();
+        }
+
+        async function analyzeEntry() {
+            const text = document.getElementById('food-input').value.trim();
+            if (!text && !currentPhotoBase64) return;
+
+            const btn = document.getElementById('analyze-btn');
+            btn.disabled = true;
+            btn.innerText = "Calculando...";
+
+            try {
+                const res = await fetch('/api/analyze', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        text,
+                        imageBase64: currentPhotoBase64,
+                        userWeight: db.profile.weight
+                    })
+                });
+                if (!res.ok) throw new Error("Error en servidor");
+                const parsed = await res.json();
+
+                ensureDay(selectedDate);
+                db.days[selectedDate].items.push(parsed);
+                saveDB();
+                renderDay();
+
+                document.getElementById('food-input').value = '';
+                currentPhotoBase64 = null;
+                document.getElementById('photo-preview').style.display = 'none';
+            } catch (err) {
+                alert("Error conectando con el servidor de IA en Vercel.");
+            } finally {
+                btn.disabled = false;
+                btn.innerText = "➕ Registrar con IA";
+            }
+        }
+
+        function switchView(v) {
+            document.getElementById('view-diary').classList.toggle('hidden', v !== 'diary');
+            document.getElementById('view-progress').classList.toggle('hidden', v !== 'progress');
+            document.getElementById('tab-d').classList.toggle('active', v === 'diary');
+            document.getElementById('tab-p').classList.toggle('active', v === 'progress');
+            if (v === 'progress') renderProgressChart();
+        }
+
+        function renderProgressChart() {
+            const chart = document.getElementById('week-chart');
+            chart.innerHTML = '';
+            let totalW = 0;
+            const names = ['D','L','M','X','J','V','S'];
+            for (let i = 6; i >= 0; i--) {
+                const dt = new Date();
+                dt.setDate(dt.getDate() - i);
+                const iso = dt.toISOString().split('T')[0];
+                const items = (db.days[iso]?.items || []).filter(x => x.type !== 'exercise');
+                const k = items.reduce((a,b) => a + (b.kcal||0), 0);
+                totalW += k;
+                const h = Math.min(120, Math.round((k / 2400) * 120));
+                const col = document.createElement('div');
+                col.className = 'bar-col';
+                col.innerHTML = `
+                    <div class="bar-stack" style="height:${Math.max(8, h)}px">
+                        <div style="height:35%; background:var(--green-carb)"></div>
+                        <div style="height:35%; background:var(--yellow-prot)"></div>
+                        <div style="height:30%; background:var(--blue-fat)"></div>
+                    </div>
+                    <span class="bar-lbl">${names[dt.getDay()]}</span>
+                `;
+                chart.appendChild(col);
+            }
+            document.getElementById('week-total-kcal').innerText = totalW.toLocaleString();
+            document.getElementById('week-avg-kcal').innerText = Math.round(totalW / 7).toLocaleString();
+        }
+
+        init();
     </script>
 </body>
 </html>
