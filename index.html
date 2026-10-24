@@ -342,7 +342,7 @@
                 <button class="icon-action" onclick="document.getElementById('cam-input').click()" title="Pujar foto">📷</button>
                 <input type="file" id="cam-input" accept="image/*" style="display:none" onchange="previewPhoto(event)">
             </div>
-            <button class="btn-submit" id="analyze-btn" onclick="analyzeEntry()">⚡ Registrar Moviment amb IA</button>
+            <button class="btn-submit" id="analyze-btn" onclick="analyzeEntry()">⚡ Registrar amb IA</button>
         </div>
 
         <div class="section-header">
@@ -680,7 +680,7 @@
                 alert(err.message || "No s'ha pogut connectar amb el servidor.");
             } finally {
                 btn.disabled = false;
-                btn.innerText = "⚡ Registrar Moviment amb IA";
+                btn.innerText = "⚡ Registrar amb IA";
             }
         }
 
