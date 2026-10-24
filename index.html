@@ -184,7 +184,31 @@
         /* Modal Perfil */
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
         .form-grid label { font-size: 11px; font-weight: 700; color: var(--text-muted); display: block; margin-bottom: 4px; }
-        .form-grid input { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border-light); font-size: 14px; }
+        .form-grid input, .form-grid select { width: 100%; padding: 10px; border-radius: 10px; border: 1px solid var(--border-light); font-size: 14px; font-family: inherit; background: #fff; }
+        .form-grid .full { grid-column: 1 / -1; }
+
+        /* Fitxa de confirmació */
+        .sheet-backdrop {
+            position: fixed; inset: 0; background: rgba(15, 23, 42, 0.45);
+            display: flex; align-items: flex-end; justify-content: center; z-index: 200;
+        }
+        .sheet {
+            background: var(--card-white); width: 100%; max-width: 480px;
+            border-radius: 24px 24px 0 0; padding: 20px 16px calc(20px + env(safe-area-inset-bottom));
+        }
+        .sheet h3 { margin: 0 0 4px 0; font-size: 16px; }
+        .sheet-hint { font-size: 12px; color: var(--text-muted); margin: 0 0 14px 0; }
+        .type-toggle { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px; }
+        .type-toggle button {
+            height: 38px; border-radius: 10px; border: 1px solid var(--border-light);
+            background: #fff; font-weight: 700; font-size: 13px; cursor: pointer; font-family: inherit;
+        }
+        .type-toggle button.active { background: var(--obsidian); color: #fff; border-color: var(--obsidian); }
+        .sheet-actions { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; }
+        .btn-ghost {
+            height: 44px; border-radius: 12px; border: 1px solid var(--border-light);
+            background: #fff; font-weight: 700; font-size: 14px; cursor: pointer; font-family: inherit;
+        }
 
         /* Bottom Nav */
         .bottom-nav {
@@ -228,6 +252,23 @@
             <div><label>Pes objectiu (kg)</label><input type="number" step="0.1" id="p-target" value="78"></div>
             <div><label>Alçada (cm)</label><input type="number" id="p-height" value="180"></div>
             <div><label>Punts Diaris</label><input type="number" id="p-points" value="29"></div>
+            <div><label>Edat</label><input type="number" id="p-age" value="35"></div>
+            <div><label>Sexe</label>
+                <select id="p-sex">
+                    <option value="m">Home</option>
+                    <option value="f">Dona</option>
+                </select>
+            </div>
+            <div class="full"><label>Activitat habitual</label>
+                <select id="p-activity">
+                    <option value="1.2">Sedentària (feina asseguda, sense esport)</option>
+                    <option value="1.3">Poc activa (camines una mica)</option>
+                    <option value="1.45">Moderada (esport 2–3 dies/setmana)</option>
+                    <option value="1.6">Activa (esport 4–5 dies/setmana)</option>
+                    <option value="1.75">Molt activa (esport diari o feina física)</option>
+                </select>
+            </div>
+            <div class="full"><label>Punts extres setmanals</label><input type="number" id="p-extras" value="12"></div>
         </div>
         <button class="btn-submit" onclick="saveProfile()">Desar i Recalcular Pressupost</button>
     </div>
@@ -328,6 +369,30 @@
         </div>
     </div>
 
+    <!-- Fitxa de confirmació: es revisa el que proposa la IA abans de desar -->
+    <div id="confirm-sheet" class="sheet-backdrop hidden">
+        <div class="sheet">
+            <h3>Revisa abans de desar</h3>
+            <p class="sheet-hint">És una estimació de la IA. Corregeix el que calgui.</p>
+            <div class="type-toggle">
+                <button type="button" id="cf-type-food" onclick="setConfirmType('food')">🍽️ Menjar</button>
+                <button type="button" id="cf-type-exercise" onclick="setConfirmType('exercise')">🏃 Exercici</button>
+            </div>
+            <div class="form-grid">
+                <div class="full"><label>Nom</label><input type="text" id="cf-name"></div>
+                <div><label>Kcal</label><input type="number" inputmode="numeric" min="0" id="cf-kcal"></div>
+                <div class="cf-food-only"><label>Punts</label><input type="number" inputmode="numeric" min="0" id="cf-punts"></div>
+                <div class="cf-food-only"><label>Proteïna (g)</label><input type="number" inputmode="numeric" min="0" id="cf-prot"></div>
+                <div class="cf-food-only"><label>Greixos (g)</label><input type="number" inputmode="numeric" min="0" id="cf-fat"></div>
+                <div class="cf-food-only"><label>Carbos (g)</label><input type="number" inputmode="numeric" min="0" id="cf-carb"></div>
+            </div>
+            <div class="sheet-actions">
+                <button class="btn-ghost" onclick="closeConfirm()">Descartar</button>
+                <button class="btn-submit" onclick="confirmEntry()">Desar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="bottom-nav">
         <div class="nav-tab active" id="tab-d" onclick="switchView('diary')">💳 Balanç Diari</div>
         <div class="nav-tab" id="tab-p" onclick="switchView('progress')">📈 Analítica Setmanal</div>
@@ -341,9 +406,13 @@
             return `${y}-${m}-${d}`;
         }
 
-        // Retorna els 7 dies de la setmana actual començant SEMPRE en Dilluns
-        function getCurrentWeekMondayToSunday() {
-            const now = new Date();
+        function escapeHTML(s) {
+            return String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+        }
+
+        // Retorna els 7 dies de la setmana (de la data donada o l'actual) començant SEMPRE en Dilluns
+        function getCurrentWeekMondayToSunday(baseISO) {
+            const now = baseISO ? new Date(baseISO + 'T12:00:00') : new Date();
             const day = now.getDay(); // 0 = Diumenge, 1 = Dilluns ... 6 = Dissabte
             const diffToMonday = day === 0 ? -6 : 1 - day;
             const monday = new Date(now);
@@ -363,12 +432,14 @@
             return days;
         }
 
-        let selectedDate = toLocalISO(new Date());
+        let today = toLocalISO(new Date());
+        let selectedDate = today;
         let currentPhotoBase64 = null;
-        let db = JSON.parse(localStorage.getItem('fc_public_v1')) || {
-            profile: { weight: 90, target: 78, height: 180, kcal: 1900, prot: 160, fat: 60, carb: 180, points: 29, extras: 12 },
-            days: {}
-        };
+        let pendingEntry = null;
+        const DEFAULT_PROFILE = { weight: 90, target: 78, height: 180, age: 35, sex: 'm', activity: 1.3, kcal: 1900, prot: 160, fat: 60, carb: 180, points: 29, extras: 12 };
+        let db = JSON.parse(localStorage.getItem('fc_public_v1')) || { profile: {}, days: {} };
+        // Perfils antics no tenen edat, sexe ni activitat: s'omplen amb els valors per defecte
+        db.profile = { ...DEFAULT_PROFILE, ...db.profile };
 
         function ensureDay(d) { if (!db.days[d]) db.days[d] = { items: [] }; }
         function saveDB() { localStorage.setItem('fc_public_v1', JSON.stringify(db)); }
@@ -379,9 +450,24 @@
             document.getElementById('p-target').value = db.profile.target;
             document.getElementById('p-height').value = db.profile.height;
             document.getElementById('p-points').value = db.profile.points;
+            document.getElementById('p-age').value = db.profile.age;
+            document.getElementById('p-sex').value = db.profile.sex;
+            document.getElementById('p-activity').value = String(db.profile.activity);
+            document.getElementById('p-extras').value = db.profile.extras;
             renderWeekStrip();
             renderDay();
         }
+
+        // Si l'app queda oberta i canvia el dia, passa al dia nou
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) return;
+            const now = toLocalISO(new Date());
+            if (now === today) return;
+            if (selectedDate === today) selectedDate = now;
+            today = now;
+            renderWeekStrip();
+            renderDay();
+        });
 
         function toggleProfileModal() {
             document.getElementById('profile-modal').classList.toggle('hidden');
@@ -392,14 +478,21 @@
             const t = parseFloat(document.getElementById('p-target').value) || 78;
             const h = parseFloat(document.getElementById('p-height').value) || 180;
             const pts = parseInt(document.getElementById('p-points').value) || 29;
+            const age = parseInt(document.getElementById('p-age').value) || 35;
+            const sex = document.getElementById('p-sex').value;
+            const activity = parseFloat(document.getElementById('p-activity').value) || 1.3;
+            const extras = parseInt(document.getElementById('p-extras').value) || 0;
 
-            const tdee = Math.round((10 * w + 6.25 * h - 5 * 35 + 5) * 1.3);
-            const targetKcal = t < w ? Math.max(1400, tdee - 500) : tdee;
+            // Mifflin-St Jeor: +5 home, -161 dona
+            const bmr = 10 * w + 6.25 * h - 5 * age + (sex === 'f' ? -161 : 5);
+            const tdee = Math.round(bmr * activity);
+            const minKcal = sex === 'f' ? 1200 : 1400;
+            const targetKcal = t < w ? Math.max(minKcal, tdee - 500) : tdee;
             const prot = Math.round(w * 1.8);
             const fat = Math.round(w * 0.68);
             const carb = Math.max(80, Math.round((targetKcal - (prot * 4 + fat * 9)) / 4));
 
-            db.profile = { weight: w, target: t, height: h, kcal: targetKcal, prot, fat, carb, points: pts, extras: 12 };
+            db.profile = { weight: w, target: t, height: h, age, sex, activity, kcal: targetKcal, prot, fat, carb, points: pts, extras };
             saveDB();
             document.getElementById('w-badge').innerText = w;
             document.getElementById('profile-modal').classList.add('hidden');
@@ -439,7 +532,13 @@
             const totalBudget = G.kcal + burned;
             const rem = totalBudget - kcal;
             const remPts = Math.max(0, G.points - ptsUsed);
-            const extraUsed = Math.max(0, ptsUsed - G.points);
+            // Els extres són setmanals: es resta el que s'ha passat cada dia de la setmana (Dl–Dg)
+            const extraUsed = getCurrentWeekMondayToSunday(selectedDate).reduce((sum, d) => {
+                const dayPts = (db.days[d.iso]?.items || [])
+                    .filter(x => x.type !== 'exercise')
+                    .reduce((a, b) => a + (b.punts || 0), 0);
+                return sum + Math.max(0, dayPts - G.points);
+            }, 0);
 
             document.getElementById('rem-kcal').innerText = rem.toLocaleString();
             document.getElementById('base-kcal').innerText = G.kcal.toLocaleString();
@@ -474,7 +573,7 @@
                     <div class="tx-left">
                         <div class="tx-icon">${isEx ? '🏃‍♂️' : '🍽️'}</div>
                         <div>
-                            <div class="tx-title">${it.name}</div>
+                            <div class="tx-title">${escapeHTML(it.name)}</div>
                             <div class="tx-meta">${isEx ? 'Abonament calòric per activitat' : `${it.punts || 0} pts • P:${it.prot}g G:${it.fat}g C:${it.carb}g`}</div>
                         </div>
                     </div>
@@ -493,29 +592,71 @@
             renderDay();
         }
 
+        // Redueix la foto a 1024 px i la passa a JPEG: les fotos del mòbil passen del límit de Vercel
+        // i les HEIC de l'iPhone no són JPEG
         function previewPhoto(e) {
             const file = e.target.files[0];
+            e.target.value = '';
             if (!file) return;
-            const reader = new FileReader();
-            reader.onload = () => {
-                currentPhotoBase64 = reader.result.split(',')[1];
-                const img = document.getElementById('photo-preview');
-                img.src = reader.result;
-                img.style.display = 'block';
+            const url = URL.createObjectURL(file);
+            const img = new Image();
+            img.onload = () => {
+                const MAX = 1024;
+                const scale = Math.min(1, MAX / Math.max(img.width, img.height));
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
+                canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+                URL.revokeObjectURL(url);
+                const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+                currentPhotoBase64 = dataUrl.split(',')[1];
+                const preview = document.getElementById('photo-preview');
+                preview.src = dataUrl;
+                preview.style.display = 'block';
             };
-            reader.readAsDataURL(file);
+            img.onerror = () => {
+                URL.revokeObjectURL(url);
+                alert("No s'ha pogut llegir la foto. Prova amb una altra o fes-ne una captura.");
+            };
+            img.src = url;
         }
 
         function toggleVoice() {
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
             if (!SpeechRecognition) return alert("Fes servir el micròfon del teclat del mòbil.");
             const rec = new SpeechRecognition();
-            rec.lang = 'es-ES';
+            rec.lang = 'ca-ES';
             const btn = document.getElementById('mic-btn');
             btn.classList.add('recording');
             rec.onresult = (e) => { document.getElementById('food-input').value = e.results[0][0].transcript; };
+            rec.onerror = (e) => {
+                if (e.error === 'no-speech' || e.error === 'aborted') return;
+                alert(e.error === 'not-allowed'
+                    ? "Cal donar permís al micròfon per dictar."
+                    : "No s'ha pogut dictar. Fes servir el micròfon del teclat del mòbil.");
+            };
             rec.onend = () => btn.classList.remove('recording');
             rec.start();
+        }
+
+        async function callAnalyze(payload, retried) {
+            const res = await fetch('/api/analyze', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-app-code': localStorage.getItem('fc_app_code') || ''
+                },
+                body: JSON.stringify(payload)
+            });
+            if (res.status === 401 && !retried) {
+                const code = prompt("Codi d'accés de Food-ctrl:");
+                if (!code) throw new Error("Cal el codi d'accés per fer servir la IA.");
+                localStorage.setItem('fc_app_code', code.trim());
+                return callAnalyze(payload, true);
+            }
+            const data = await res.json().catch(() => ({}));
+            if (!res.ok) throw new Error(data.error || `Error del servidor (${res.status})`);
+            return data;
         }
 
         async function analyzeEntry() {
@@ -527,32 +668,67 @@
             btn.innerText = "Processant...";
 
             try {
-                const res = await fetch('/api/analyze', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        text,
-                        imageBase64: currentPhotoBase64,
-                        userWeight: db.profile.weight
-                    })
+                const parsed = await callAnalyze({
+                    text,
+                    imageBase64: currentPhotoBase64,
+                    imageMime: 'image/jpeg',
+                    userWeight: db.profile.weight
                 });
-                if (!res.ok) throw new Error("Error al servidor");
-                const parsed = await res.json();
-
-                ensureDay(selectedDate);
-                db.days[selectedDate].items.push(parsed);
-                saveDB();
-                renderDay();
-
-                document.getElementById('food-input').value = '';
-                currentPhotoBase64 = null;
-                document.getElementById('photo-preview').style.display = 'none';
+                openConfirm(parsed);
             } catch (err) {
-                alert("Error connectant amb /api/analyze a Vercel. Revisa la variable GEMINI_API_KEY.");
+                if (err.message.toLowerCase().includes("codi d'accés")) localStorage.removeItem('fc_app_code');
+                alert(err.message || "No s'ha pogut connectar amb el servidor.");
             } finally {
                 btn.disabled = false;
                 btn.innerText = "⚡ Registrar Moviment amb IA";
             }
+        }
+
+        function setConfirmType(type) {
+            pendingEntry.type = type;
+            document.getElementById('cf-type-food').classList.toggle('active', type === 'food');
+            document.getElementById('cf-type-exercise').classList.toggle('active', type === 'exercise');
+            document.querySelectorAll('.cf-food-only').forEach(el => el.classList.toggle('hidden', type === 'exercise'));
+        }
+
+        function openConfirm(entry) {
+            pendingEntry = { ...entry };
+            document.getElementById('cf-name').value = entry.name || '';
+            ['kcal', 'punts', 'prot', 'fat', 'carb'].forEach(k => {
+                document.getElementById('cf-' + k).value = entry[k] || 0;
+            });
+            setConfirmType(entry.type === 'exercise' ? 'exercise' : 'food');
+            document.getElementById('confirm-sheet').classList.remove('hidden');
+        }
+
+        function closeConfirm() {
+            pendingEntry = null;
+            document.getElementById('confirm-sheet').classList.add('hidden');
+        }
+
+        function confirmEntry() {
+            if (!pendingEntry) return;
+            const num = id => Math.max(0, Math.round(parseFloat(document.getElementById(id).value) || 0));
+            const isEx = pendingEntry.type === 'exercise';
+            const entry = {
+                type: isEx ? 'exercise' : 'food',
+                name: document.getElementById('cf-name').value.trim() || (isEx ? 'Exercici' : 'Menjar'),
+                kcal: num('cf-kcal'),
+                prot: isEx ? 0 : num('cf-prot'),
+                fat: isEx ? 0 : num('cf-fat'),
+                carb: isEx ? 0 : num('cf-carb'),
+                punts: isEx ? 0 : num('cf-punts')
+            };
+
+            ensureDay(selectedDate);
+            db.days[selectedDate].items.push(entry);
+            saveDB();
+            renderDay();
+            closeConfirm();
+
+            document.getElementById('food-input').value = '';
+            currentPhotoBase64 = null;
+            document.getElementById('photo-preview').style.display = 'none';
         }
 
         function switchView(v) {
