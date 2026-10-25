@@ -634,22 +634,54 @@
             img.src = url;
         }
 
-        function toggleVoice() {
+        const KEYBOARD_MIC_HINT = "Toca el camp de text i fes servir el micròfon del teclat (🎙️ a baix del teclat).";
+        let activeRec = null;
+
+        // Safari fa servir els idiomes de Siri, que no té català: si falla, es torna a provar en castellà
+        function toggleVoice(lang = localStorage.getItem('fc_voice_lang') || 'ca-ES') {
+            if (activeRec) { activeRec.stop(); return; }
+
             const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-            if (!SpeechRecognition) return alert("Fes servir el micròfon del teclat del mòbil.");
-            const rec = new SpeechRecognition();
-            rec.lang = 'ca-ES';
+            if (!SpeechRecognition) {
+                document.getElementById('food-input').focus();
+                return alert(KEYBOARD_MIC_HINT);
+            }
+
+            const input = document.getElementById('food-input');
             const btn = document.getElementById('mic-btn');
-            btn.classList.add('recording');
-            rec.onresult = (e) => { document.getElementById('food-input').value = e.results[0][0].transcript; };
+            const prefix = input.value.trim() ? input.value.trim() + ' ' : '';
+            const rec = new SpeechRecognition();
+            rec.lang = lang;
+            rec.interimResults = true;
+            let retryLang = null;
+
+            rec.onresult = (e) => {
+                const text = Array.from(e.results).map(r => r[0].transcript).join('');
+                input.value = prefix + text;
+            };
             rec.onerror = (e) => {
                 if (e.error === 'no-speech' || e.error === 'aborted') return;
-                alert(e.error === 'not-allowed'
-                    ? "Cal donar permís al micròfon per dictar."
-                    : "No s'ha pogut dictar. Fes servir el micròfon del teclat del mòbil.");
+                if (e.error === 'language-not-supported' && lang !== 'es-ES') {
+                    localStorage.setItem('fc_voice_lang', 'es-ES');
+                    retryLang = 'es-ES';
+                    return;
+                }
+                if (e.error === 'not-allowed') return alert("Cal donar permís al micròfon per dictar.");
+                alert(`No s'ha pogut dictar (${e.error}). ${KEYBOARD_MIC_HINT}`);
             };
-            rec.onend = () => btn.classList.remove('recording');
-            rec.start();
+            rec.onend = () => {
+                activeRec = null;
+                btn.classList.remove('recording');
+                if (retryLang) toggleVoice(retryLang);
+            };
+
+            try {
+                rec.start();
+                activeRec = rec;
+                btn.classList.add('recording');
+            } catch (err) {
+                alert(KEYBOARD_MIC_HINT);
+            }
         }
 
         async function callAnalyze(payload, retried) {
