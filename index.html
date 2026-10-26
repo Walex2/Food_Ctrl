@@ -227,6 +227,13 @@
             color: var(--text-muted); cursor: pointer; padding: 10px; border-radius: 12px;
         }
         .nav-tab.active { color: #fff; background: var(--obsidian); }
+
+        /* Vista de pes */
+        .w-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-light); }
+        .w-stats .l-lbl { font-size: 10px; color: var(--text-muted); font-weight: 700; display: block; margin-bottom: 2px; }
+        .w-stats .l-val { font-size: 15px; font-weight: 800; }
+        #weight-chart { width: 100%; height: auto; display: block; }
+        .w-sync { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 8px; }
         .hidden { display: none !important; }
     </style>
 </head>
@@ -373,6 +380,37 @@
         </div>
     </div>
 
+    <!-- VISTA 3: PES (arriba des de Salut amb una drecera, o s'apunta a mà) -->
+    <div id="view-weight" class="hidden">
+        <div class="card">
+            <span class="obs-label" style="color:var(--text-muted)">Pes actual</span>
+            <div class="balance-big mono" style="margin:6px 0 2px 0">
+                <span id="w-current">–</span><span class="unit">kg</span>
+            </div>
+            <div style="font-size:11px; color:var(--text-muted); font-weight:600;" id="w-current-date"></div>
+            <div class="w-stats mono">
+                <div><span class="l-lbl">CANVI (90 DIES)</span><span class="l-val" id="w-change">–</span></div>
+                <div><span class="l-lbl">OBJECTIU</span><span class="l-val" id="w-target">–</span></div>
+                <div><span class="l-lbl">FALTEN</span><span class="l-val" id="w-left">–</span></div>
+            </div>
+        </div>
+
+        <div class="card">
+            <svg id="weight-chart" viewBox="0 0 320 170" role="img" aria-label="Evolució del pes"></svg>
+            <div class="w-sync" id="w-sync"></div>
+        </div>
+
+        <div class="card">
+            <div class="input-row" style="margin-bottom:0">
+                <input type="text" inputmode="decimal" id="w-input" placeholder="Pes d'avui (kg)">
+                <button class="btn-submit" style="width:auto; padding:0 16px" onclick="addWeight()">Afegir</button>
+            </div>
+        </div>
+
+        <div class="section-header"><h3>Últims registres</h3></div>
+        <div id="weight-list"></div>
+    </div>
+
     <!-- Fitxa de confirmació: es revisa el que proposa la IA abans de desar -->
     <div id="confirm-sheet" class="sheet-backdrop hidden">
         <div class="sheet">
@@ -407,8 +445,9 @@
     </div>
 
     <div class="bottom-nav">
-        <div class="nav-tab active" id="tab-d" onclick="switchView('diary')">💳 Balanç Diari</div>
-        <div class="nav-tab" id="tab-p" onclick="switchView('progress')">📈 Analítica Setmanal</div>
+        <div class="nav-tab active" id="tab-d" onclick="switchView('diary')">💳 Diari</div>
+        <div class="nav-tab" id="tab-w" onclick="switchView('weight')">⚖️ Pes</div>
+        <div class="nav-tab" id="tab-p" onclick="switchView('progress')">📈 Setmana</div>
     </div>
 
     <script>
@@ -453,6 +492,8 @@
         let db = JSON.parse(localStorage.getItem('fc_public_v1')) || { profile: {}, days: {} };
         // Perfils antics no tenen edat, sexe ni activitat: s'omplen amb els valors per defecte
         db.profile = { ...DEFAULT_PROFILE, ...db.profile };
+        // Còpia local de l'historial de pes del servidor: { "2026-10-25": 89.4 }
+        db.weights = db.weights || {};
 
         function ensureDay(d) { if (!db.days[d]) db.days[d] = { items: [] }; }
         function saveDB() { localStorage.setItem('fc_public_v1', JSON.stringify(db)); }
@@ -469,11 +510,13 @@
             document.getElementById('p-extras').value = db.profile.extras;
             renderWeekStrip();
             renderDay();
+            syncWeights();
         }
 
         // Si l'app queda oberta i canvia el dia, passa al dia nou
         document.addEventListener('visibilitychange', () => {
             if (document.hidden) return;
+            syncWeights();
             const now = toLocalISO(new Date());
             if (now === today) return;
             if (selectedDate === today) selectedDate = now;
@@ -496,20 +539,25 @@
             const activity = parseFloat(document.getElementById('p-activity').value) || 1.3;
             const extras = parseInt(document.getElementById('p-extras').value) || 0;
 
-            // Mifflin-St Jeor: +5 home, -161 dona
-            const bmr = 10 * w + 6.25 * h - 5 * age + (sex === 'f' ? -161 : 5);
-            const tdee = Math.round(bmr * activity);
-            const minKcal = sex === 'f' ? 1200 : 1400;
-            const targetKcal = t < w ? Math.max(minKcal, tdee - 500) : tdee;
-            const prot = Math.round(w * 1.8);
-            const fat = Math.round(w * 0.68);
-            const carb = Math.max(80, Math.round((targetKcal - (prot * 4 + fat * 9)) / 4));
-
-            db.profile = { weight: w, target: t, height: h, age, sex, activity, kcal: targetKcal, prot, fat, carb, points: pts, extras };
+            db.profile = computeTargets({ weight: w, target: t, height: h, age, sex, activity, points: pts, extras });
             saveDB();
             document.getElementById('w-badge').innerText = w;
             document.getElementById('profile-modal').classList.add('hidden');
             renderDay();
+        }
+
+        // Calcula el pressupost de kcal i macros a partir del perfil
+        function computeTargets(p) {
+            const { weight: w, target: t, height: h, age, sex, activity } = p;
+            // Mifflin-St Jeor: +5 home, -161 dona
+            const bmr = 10 * w + 6.25 * h - 5 * age + (sex === 'f' ? -161 : 5);
+            const tdee = Math.round(bmr * activity);
+            const minKcal = sex === 'f' ? 1200 : 1400;
+            const kcal = t < w ? Math.max(minKcal, tdee - 500) : tdee;
+            const prot = Math.round(w * 1.8);
+            const fat = Math.round(w * 0.68);
+            const carb = Math.max(80, Math.round((kcal - (prot * 4 + fat * 9)) / 4));
+            return { ...p, kcal, prot, fat, carb };
         }
 
         function renderWeekStrip() {
@@ -684,24 +732,31 @@
             }
         }
 
-        async function callAnalyze(payload, retried) {
-            const res = await fetch('/api/analyze', {
-                method: 'POST',
+        // Crida a l'API amb el codi d'accés; si falta o és incorrecte, el demana un cop (si askCode)
+        async function apiFetch(path, { method = 'GET', body, askCode = true } = {}, retried) {
+            const res = await fetch(path, {
+                method,
                 headers: {
                     'Content-Type': 'application/json',
                     'x-app-code': localStorage.getItem('fc_app_code') || ''
                 },
-                body: JSON.stringify(payload)
+                body: body ? JSON.stringify(body) : undefined
             });
-            if (res.status === 401 && !retried) {
+            if (res.status === 401) {
+                localStorage.removeItem('fc_app_code');
+                if (!askCode || retried) throw new Error("Codi d'accés incorrecte");
                 const code = prompt("Codi d'accés de Food-ctrl:");
-                if (!code) throw new Error("Cal el codi d'accés per fer servir la IA.");
+                if (!code) throw new Error("Cal el codi d'accés.");
                 localStorage.setItem('fc_app_code', code.trim());
-                return callAnalyze(payload, true);
+                return apiFetch(path, { method, body, askCode }, true);
             }
             const data = await res.json().catch(() => ({}));
             if (!res.ok) throw new Error(data.error || `Error del servidor (${res.status})`);
             return data;
+        }
+
+        function callAnalyze(payload) {
+            return apiFetch('/api/analyze', { method: 'POST', body: payload });
         }
 
         async function analyzeEntry() {
@@ -721,7 +776,6 @@
                 });
                 openConfirm(parsed);
             } catch (err) {
-                if (err.message.toLowerCase().includes("codi d'accés")) localStorage.removeItem('fc_app_code');
                 alert(err.message || "No s'ha pogut connectar amb el servidor.");
             } finally {
                 btn.disabled = false;
@@ -803,10 +857,145 @@
 
         function switchView(v) {
             document.getElementById('view-diary').classList.toggle('hidden', v !== 'diary');
+            document.getElementById('view-weight').classList.toggle('hidden', v !== 'weight');
             document.getElementById('view-progress').classList.toggle('hidden', v !== 'progress');
             document.getElementById('tab-d').classList.toggle('active', v === 'diary');
+            document.getElementById('tab-w').classList.toggle('active', v === 'weight');
             document.getElementById('tab-p').classList.toggle('active', v === 'progress');
             if (v === 'progress') renderProgressChart();
+            if (v === 'weight') { renderWeight(); syncWeights(true); }
+        }
+
+        // ---------- PES ----------
+        let weightSyncState = '';
+
+        function sortedWeights() {
+            return Object.entries(db.weights).sort((a, b) => a[0].localeCompare(b[0]));
+        }
+
+        function fmtKg(n) {
+            return n.toLocaleString('ca-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+        }
+
+        function fmtDate(iso) {
+            return new Date(iso + 'T12:00:00').toLocaleDateString('ca-ES', { day: 'numeric', month: 'short' });
+        }
+
+        // L'últim pes registrat passa al perfil i recalcula el pressupost de kcal
+        function applyLatestWeight() {
+            const all = sortedWeights();
+            if (!all.length) return;
+            const latest = all[all.length - 1][1];
+            if (latest === db.profile.weight) return;
+            db.profile = computeTargets({ ...db.profile, weight: latest });
+            saveDB();
+            document.getElementById('w-badge').innerText = latest;
+            document.getElementById('p-weight').value = latest;
+            renderDay();
+        }
+
+        // Porta l'historial del servidor; askCode només quan l'usuari obre la pestanya de pes
+        async function syncWeights(askCode = false) {
+            if (!askCode && !localStorage.getItem('fc_app_code')) return;
+            try {
+                const data = await apiFetch('/api/weight', { askCode });
+                db.weights = data.weights || {};
+                saveDB();
+                applyLatestWeight();
+                weightSyncState = 'Sincronitzat a les ' + new Date().toLocaleTimeString('ca-ES', { hour: '2-digit', minute: '2-digit' });
+            } catch (err) {
+                weightSyncState = "No s'ha pogut sincronitzar: " + err.message;
+            }
+            if (!document.getElementById('view-weight').classList.contains('hidden')) renderWeight();
+        }
+
+        async function addWeight() {
+            const input = document.getElementById('w-input');
+            const kg = parseFloat(input.value.replace(',', '.'));
+            if (!(kg >= 20 && kg <= 400)) return alert('Escriu un pes vàlid, per exemple 89,4');
+            try {
+                await apiFetch('/api/weight', { method: 'POST', body: { kg, date: today } });
+                input.value = '';
+                await syncWeights(true);
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function deleteWeight(date) {
+            if (!confirm(`Esborrar el pes del ${fmtDate(date)}?`)) return;
+            try {
+                await apiFetch('/api/weight?date=' + date, { method: 'DELETE' });
+                await syncWeights(true);
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        function renderWeight() {
+            const all = sortedWeights();
+            const target = db.profile.target;
+            document.getElementById('w-sync').innerText = weightSyncState;
+            document.getElementById('w-target').innerText = fmtKg(target);
+
+            const list = document.getElementById('weight-list');
+            list.innerHTML = '';
+            const svg = document.getElementById('weight-chart');
+
+            if (!all.length) {
+                document.getElementById('w-current').innerText = fmtKg(db.profile.weight);
+                document.getElementById('w-current-date').innerText = 'Del perfil · encara no hi ha registres';
+                ['w-change', 'w-left'].forEach(id => document.getElementById(id).innerText = '–');
+                svg.innerHTML = '<text x="160" y="90" text-anchor="middle" font-size="12" fill="#64748b">Quan arribin pesos, aquí en veuràs l\'evolució</text>';
+                return;
+            }
+
+            const [lastDate, last] = all[all.length - 1];
+            document.getElementById('w-current').innerText = fmtKg(last);
+            document.getElementById('w-current-date').innerText = fmtDate(lastDate);
+
+            const from = new Date(); from.setDate(from.getDate() - 90);
+            const recent = all.filter(([d]) => d >= toLocalISO(from));
+            const diff = Math.round((last - recent[0][1]) * 10) / 10;
+            document.getElementById('w-change').innerText = (diff > 0 ? '+' : '') + fmtKg(diff);
+            const left = Math.round((last - target) * 10) / 10;
+            document.getElementById('w-left').innerText = left > 0 ? fmtKg(left) : '✓';
+
+            // Gràfica: línia del pes dels últims 90 dies i línia discontínua de l'objectiu
+            const W = 320, H = 170, padL = 34, padR = 8, padT = 10, padB = 22;
+            const vals = recent.map(([, v]) => v).concat(target);
+            const min = Math.floor(Math.min(...vals) - 1), max = Math.ceil(Math.max(...vals) + 1);
+            const t0 = new Date(recent[0][0] + 'T12:00:00').getTime();
+            const t1 = Math.max(t0 + 86400000, new Date(lastDate + 'T12:00:00').getTime());
+            const x = d => padL + (new Date(d + 'T12:00:00').getTime() - t0) / (t1 - t0) * (W - padL - padR);
+            const y = v => padT + (max - v) / (max - min) * (H - padT - padB);
+            const pts = recent.map(([d, v]) => `${x(d).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
+            svg.innerHTML = `
+                <text x="${padL - 6}" y="${y(max) + 4}" text-anchor="end" font-size="10" fill="#64748b">${max}</text>
+                <text x="${padL - 6}" y="${y(min) + 4}" text-anchor="end" font-size="10" fill="#64748b">${min}</text>
+                <line x1="${padL}" x2="${W - padR}" y1="${y(target)}" y2="${y(target)}" stroke="#10b981" stroke-width="1.5" stroke-dasharray="4 4"/>
+                <text x="${W - padR}" y="${y(target) - 4}" text-anchor="end" font-size="10" fill="#10b981">objectiu</text>
+                <polyline points="${pts}" fill="none" stroke="#4f46e5" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"/>
+                ${recent.map(([d, v]) => `<circle cx="${x(d).toFixed(1)}" cy="${y(v).toFixed(1)}" r="2.5" fill="#4f46e5"/>`).join('')}
+                <text x="${padL}" y="${H - 6}" font-size="10" fill="#64748b">${fmtDate(recent[0][0])}</text>
+                <text x="${W - padR}" y="${H - 6}" text-anchor="end" font-size="10" fill="#64748b">${fmtDate(lastDate)}</text>
+            `;
+
+            all.slice(-10).reverse().forEach(([d, v]) => {
+                const div = document.createElement('div');
+                div.className = 'tx-item';
+                div.innerHTML = `
+                    <div class="tx-left">
+                        <div class="tx-icon">⚖️</div>
+                        <div class="tx-title">${fmtDate(d)}</div>
+                    </div>
+                    <div class="tx-right">
+                        <div class="tx-amount mono">${fmtKg(v)} kg</div>
+                        <button class="del-btn" onclick="deleteWeight('${d}')">✕</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
         }
 
         function renderProgressChart() {
